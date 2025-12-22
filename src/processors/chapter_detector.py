@@ -56,3 +56,61 @@ class ChapterResult:
     """
     chapters: List[dict]
     stats: DetectionStats
+
+
+class CandidateScorer:
+    """
+    Scores chapter candidates based on match type and context.
+    """
+
+    # Base scores by match type
+    BASE_SCORES = {
+        MatchType.TOC: 0.9,
+        MatchType.EXPLICIT: 0.8,
+        MatchType.TITLE_CASE: 0.5,
+        MatchType.PATTERN: 0.4,
+    }
+
+    # Penalty weights
+    CODE_BLOCK_PENALTY = 0.5
+    NO_BLANK_PENALTY = 0.2
+    NO_PROSE_PENALTY = 0.3
+    LIST_ITEM_PENALTY = 0.4  # Applied when nearby_similar_lines >= 2
+
+    # Confidence thresholds
+    HIGH_THRESHOLD = 0.7
+    MEDIUM_THRESHOLD = 0.4
+
+    def score(self, candidate: ChapterCandidate) -> float:
+        """
+        Calculate confidence score for a candidate.
+
+        Returns:
+            Float between 0.0 and 1.0
+        """
+        score = self.BASE_SCORES.get(candidate.match_type, 0.4)
+
+        # Apply penalties
+        if candidate.in_code_block:
+            score -= self.CODE_BLOCK_PENALTY
+
+        if not candidate.preceded_by_blank:
+            score -= self.NO_BLANK_PENALTY
+
+        if not candidate.followed_by_prose:
+            score -= self.NO_PROSE_PENALTY
+
+        if candidate.nearby_similar_lines >= 2:
+            score -= self.LIST_ITEM_PENALTY
+
+        # Clamp to valid range
+        return max(0.0, min(1.0, score))
+
+    def get_confidence_level(self, score: float) -> str:
+        """Convert numeric score to confidence level string"""
+        if score >= self.HIGH_THRESHOLD:
+            return 'high'
+        elif score >= self.MEDIUM_THRESHOLD:
+            return 'medium'
+        else:
+            return 'low'
