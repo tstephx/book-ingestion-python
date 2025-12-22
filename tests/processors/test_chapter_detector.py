@@ -2,6 +2,7 @@
 
 import pytest
 from src.processors.chapter_detector import (
+    AnchorMerger,
     ChapterCandidate,
     CandidateScorer,
     DetectionStats,
@@ -255,3 +256,73 @@ Back to text."""
         # They may or may not exist, but if they do, they're marked
         for c in code_candidates:
             assert c.in_code_block is True
+
+
+class TestAnchorMerger:
+    def setup_method(self):
+        self.merger = AnchorMerger()
+
+    def test_high_confidence_becomes_anchor(self):
+        """High confidence candidates become anchors"""
+        candidates = [
+            ChapterCandidate(line_index=10, title="Chapter 1",
+                           match_type=MatchType.EXPLICIT, confidence=0.8),
+            ChapterCandidate(line_index=50, title="Chapter 2",
+                           match_type=MatchType.EXPLICIT, confidence=0.75),
+        ]
+
+        anchors = self.merger.select_anchors(candidates)
+        assert len(anchors) == 2
+
+    def test_low_confidence_absorbed(self):
+        """Low confidence candidates are absorbed into previous anchor"""
+        candidates = [
+            ChapterCandidate(line_index=10, title="Chapter 1",
+                           match_type=MatchType.EXPLICIT, confidence=0.8),
+            ChapterCandidate(line_index=30, title="388 history 7",
+                           match_type=MatchType.PATTERN, confidence=0.2),
+            ChapterCandidate(line_index=50, title="Chapter 2",
+                           match_type=MatchType.EXPLICIT, confidence=0.75),
+        ]
+
+        anchors = self.merger.select_anchors(candidates)
+
+        # Only real chapters should be anchors
+        titles = [a.title for a in anchors]
+        assert "Chapter 1" in titles
+        assert "Chapter 2" in titles
+        assert "388 history 7" not in titles
+
+    def test_promotes_medium_when_no_high(self):
+        """When no high-confidence, promote best medium candidates"""
+        candidates = [
+            ChapterCandidate(line_index=10, title="Introduction",
+                           match_type=MatchType.TITLE_CASE, confidence=0.5),
+            ChapterCandidate(line_index=50, title="Background",
+                           match_type=MatchType.TITLE_CASE, confidence=0.55),
+            ChapterCandidate(line_index=90, title="Conclusion",
+                           match_type=MatchType.TITLE_CASE, confidence=0.5),
+        ]
+
+        anchors = self.merger.select_anchors(candidates)
+
+        # Should promote medium-confidence as fallback
+        assert len(anchors) >= 2
+
+    def test_merge_stats_tracking(self):
+        """Should track merge statistics"""
+        candidates = [
+            ChapterCandidate(line_index=10, title="Chapter 1",
+                           match_type=MatchType.EXPLICIT, confidence=0.8),
+            ChapterCandidate(line_index=20, title="1.1 Section",
+                           match_type=MatchType.PATTERN, confidence=0.3),
+            ChapterCandidate(line_index=30, title="1.2 Another",
+                           match_type=MatchType.PATTERN, confidence=0.25),
+            ChapterCandidate(line_index=100, title="Chapter 2",
+                           match_type=MatchType.EXPLICIT, confidence=0.8),
+        ]
+
+        anchors, stats = self.merger.merge(candidates)
+
+        assert stats.anchors_used == 2
+        assert stats.merges_performed == 2  # Two low-confidence absorbed

@@ -302,3 +302,89 @@ class CandidateExtractor:
                     break
 
         return candidates
+
+
+class AnchorMerger:
+    """
+    Selects high-confidence anchors and absorbs low-confidence candidates.
+    """
+
+    HIGH_THRESHOLD = 0.7
+    MEDIUM_THRESHOLD = 0.4
+    MIN_ANCHORS = 3  # Minimum chapters to accept before fallback
+
+    def select_anchors(self, candidates: List[ChapterCandidate]) -> List[ChapterCandidate]:
+        """
+        Select anchor candidates based on confidence.
+
+        High-confidence (>= 0.7) candidates become anchors.
+        If too few anchors, promote best medium-confidence candidates.
+        """
+        # Sort by line index for sequential processing
+        sorted_candidates = sorted(candidates, key=lambda c: c.line_index)
+
+        # Select high-confidence anchors
+        anchors = [c for c in sorted_candidates if c.confidence >= self.HIGH_THRESHOLD]
+
+        # If not enough anchors, promote medium-confidence
+        if len(anchors) < self.MIN_ANCHORS:
+            medium = [c for c in sorted_candidates
+                     if self.MEDIUM_THRESHOLD <= c.confidence < self.HIGH_THRESHOLD]
+            # Sort by confidence descending
+            medium.sort(key=lambda c: c.confidence, reverse=True)
+
+            # Add best medium candidates until we have enough
+            for candidate in medium:
+                if len(anchors) >= self.MIN_ANCHORS:
+                    break
+                # Insert in correct position by line_index
+                anchors.append(candidate)
+
+            anchors.sort(key=lambda c: c.line_index)
+
+        return anchors
+
+    def merge(self, candidates: List[ChapterCandidate]) -> tuple:
+        """
+        Perform full anchor selection and merge.
+
+        Returns:
+            Tuple of (anchors, DetectionStats)
+        """
+        anchors = self.select_anchors(candidates)
+        anchor_indices = {a.line_index for a in anchors}
+
+        # Count merges (candidates not selected as anchors)
+        merges = len(candidates) - len(anchors)
+
+        # Determine overall confidence
+        if not anchors:
+            confidence = 'low'
+        elif all(a.confidence >= self.HIGH_THRESHOLD for a in anchors):
+            confidence = 'high'
+        elif any(a.confidence >= self.HIGH_THRESHOLD for a in anchors):
+            confidence = 'medium'
+        else:
+            confidence = 'low'
+
+        # Determine method based on anchor types
+        toc_count = sum(1 for a in anchors if a.match_type == MatchType.TOC)
+        explicit_count = sum(1 for a in anchors if a.match_type == MatchType.EXPLICIT)
+
+        if toc_count > len(anchors) / 2:
+            method = 'toc'
+        elif explicit_count > 0:
+            method = 'pattern'
+        else:
+            method = 'fallback'
+
+        stats = DetectionStats(
+            method=method,
+            confidence=confidence,
+            candidates_found=len(candidates),
+            candidates_rejected=merges,
+            anchors_used=len(anchors),
+            merges_performed=merges,
+        )
+
+        return anchors, stats
