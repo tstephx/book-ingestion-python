@@ -1,0 +1,37 @@
+{
+  "output_dir": "./data/books",
+  "database_path": "./data/library.db",
+  "temp_dir": "./data/temp",
+  "chapter_detection": {
+    "min_words_per_chapter": 500,
+    "max_words_per_chapter": 50000,
+    "patterns": [
+      "^Chapter\\s+(\\d+)",
+      "^CHAPTER\\s+(\\d+)",
+      "^Chapter\\s+(\\d+):",
+      "^CHAPTER\\s+(\\d+):",
+      "^Chapter\\s+(One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve|Thirteen|Fourteen|Fifteen|Sixteen|Seventeen|Eighteen|Nineteen|Twenty)",
+      "^Project\\s+\\d+[A-Z]:",
+      "^PROJECT\\s+\\d+[A-Z]:",
+      "^Lesson\\s+(\\d+)",
+      "^LESSON\\s+(\\d+)",
+      "^Module\\s+(\\d+)",
+      "^MODULE\\s+(\\d+)",
+      "^Unit\\s+(\\d+)",
+      "^UNIT\\s+(\\d+)",
+      "^Part\\s+(\\d+)",
+      "^PART\\s+(\\d+)",
+      "^Part\\s+(One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten)",
+      "^PART\\s+(ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|EIGHT|NINE|TEN)",
+      "^Section\\s+(\\d+)",
+      "^SECTION\\s+(\\d+)",
+      "^Day\\s+(\\d+)"
+    ]
+  },
+  "text_cleaning": {
+    "remove_headers": true,
+    "remove_footers": true,
+    "remove_page_numbers": true,
+    "normalize_whitespace": true
+  }
+}
