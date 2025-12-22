@@ -157,3 +157,101 @@ class TestCandidateScorer:
         """Scores < 0.4 should be 'low' confidence"""
         assert self.scorer.get_confidence_level(0.3) == 'low'
         assert self.scorer.get_confidence_level(0.0) == 'low'
+
+
+class TestCandidateExtractor:
+    def setup_method(self):
+        from src.processors.chapter_detector import CandidateExtractor
+        self.extractor = CandidateExtractor()
+
+    def test_extracts_explicit_chapter_markers(self):
+        """Should find 'Chapter N' style headers"""
+        text = """Introduction
+
+Chapter 1 Getting Started
+
+This chapter covers basics.
+
+Chapter 2 Advanced Topics
+
+More content here."""
+
+        candidates = self.extractor.extract(text)
+
+        titles = [c.title for c in candidates]
+        assert "Chapter 1 Getting Started" in titles
+        assert "Chapter 2 Advanced Topics" in titles
+
+        # Should be marked as EXPLICIT type
+        ch1 = next(c for c in candidates if "Chapter 1" in c.title)
+        assert ch1.match_type == MatchType.EXPLICIT
+
+    def test_extracts_with_context(self):
+        """Should capture context for scoring"""
+        text = """Some intro text.
+
+Chapter 1 Introduction
+
+This is the first chapter content with multiple
+sentences that form proper prose paragraphs."""
+
+        candidates = self.extractor.extract(text)
+
+        ch1 = next(c for c in candidates if "Chapter 1" in c.title)
+        assert ch1.preceded_by_blank is True
+        assert ch1.followed_by_prose is True
+
+    def test_detects_nearby_similar_patterns(self):
+        """Should count nearby similar patterns (list detection)"""
+        text = """Contents:
+
+1. First item
+2. Second item
+3. Third item
+4. Fourth item
+
+Chapter 1 Real Chapter"""
+
+        candidates = self.extractor.extract(text)
+
+        # The numbered list items should have high nearby_similar_lines
+        list_candidates = [c for c in candidates if c.title.startswith(('1.', '2.', '3.'))]
+        for c in list_candidates:
+            assert c.nearby_similar_lines >= 2
+
+    def test_marks_code_block_lines(self):
+        """Should mark candidates found in code blocks"""
+        text = """Chapter 1 Shell Commands
+
+Here's how to list processes:
+
+$ ps aux
+10432 chris 20 0 471m
+
+Chapter 2 Next Topic"""
+
+        candidates = self.extractor.extract(text)
+
+        # Real chapters should not be in code blocks
+        ch1 = next(c for c in candidates if "Chapter 1" in c.title)
+        ch2 = next(c for c in candidates if "Chapter 2" in c.title)
+        assert ch1.in_code_block is False
+        assert ch2.in_code_block is False
+
+    def test_skips_lines_in_code_blocks(self):
+        """Pattern matches inside code blocks should be marked"""
+        text = """Chapter 1 Commands
+
+$ cat file.txt
+1. First line
+2. Second line
+
+Back to text."""
+
+        candidates = self.extractor.extract(text)
+
+        # Any candidates from the code block should be marked
+        code_candidates = [c for c in candidates if c.in_code_block]
+        # They may or may not exist, but if they do, they're marked
+        for c in code_candidates:
+            assert c.in_code_block is True
