@@ -32,6 +32,9 @@ class ChapterSplitter:
 
     def split_with_stats(self, text: str, book_id: str) -> Dict:
         """Split text into chapters with detection statistics."""
+        # Calculate word count for expected chapters estimation
+        word_count = len(text.split())
+
         # Stage 1: Detect code blocks
         code_regions = self.code_detector.detect(text)
 
@@ -45,8 +48,8 @@ class ChapterSplitter:
         for candidate in candidates:
             candidate.confidence = self.scorer.score(candidate)
 
-        # Stage 5: Select anchors and merge
-        anchors, stats = self.merger.merge(candidates)
+        # Stage 5: Select anchors and merge (pass word count for better estimation)
+        anchors, stats = self.merger.merge(candidates, word_count)
         stats.code_blocks_detected = len(code_regions)
 
         # Build chapters from anchors

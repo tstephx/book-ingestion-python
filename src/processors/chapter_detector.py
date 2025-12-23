@@ -311,47 +311,102 @@ class AnchorMerger:
 
     HIGH_THRESHOLD = 0.7
     MEDIUM_THRESHOLD = 0.4
-    MIN_ANCHORS = 3  # Minimum chapters to accept before fallback
+    LOW_THRESHOLD = 0.3  # For fallback promotion
+    MIN_ANCHORS = 3  # Absolute minimum chapters
+    WORDS_PER_CHAPTER = 8000  # Expect roughly 1 chapter per 8K words
 
-    def select_anchors(self, candidates: List[ChapterCandidate]) -> List[ChapterCandidate]:
+    def select_anchors(self, candidates: List[ChapterCandidate],
+                       word_count: int = 0) -> List[ChapterCandidate]:
         """
         Select anchor candidates based on confidence.
 
         High-confidence (>= 0.7) candidates become anchors.
         If too few anchors, promote best medium-confidence candidates.
+        Uses word count to estimate expected chapters.
+        Prefers candidates spread throughout the document (skips TOC area).
         """
         # Sort by line index for sequential processing
         sorted_candidates = sorted(candidates, key=lambda c: c.line_index)
+        if not sorted_candidates:
+            return []
+
+        max_line = max(c.line_index for c in sorted_candidates)
+
+        # Calculate expected chapters based on word count
+        if word_count > 0:
+            expected_chapters = max(self.MIN_ANCHORS, word_count // self.WORDS_PER_CHAPTER)
+        else:
+            expected_chapters = self.MIN_ANCHORS
 
         # Select high-confidence anchors
         anchors = [c for c in sorted_candidates if c.confidence >= self.HIGH_THRESHOLD]
 
-        # If not enough anchors, promote medium-confidence
-        if len(anchors) < self.MIN_ANCHORS:
+        # If not enough anchors, promote medium-confidence with spacing preference
+        if len(anchors) < expected_chapters:
             medium = [c for c in sorted_candidates
                      if self.MEDIUM_THRESHOLD <= c.confidence < self.HIGH_THRESHOLD]
-            # Sort by confidence descending
-            medium.sort(key=lambda c: c.confidence, reverse=True)
 
-            # Add best medium candidates until we have enough
+            # Skip first 10% of document (likely TOC/front matter)
+            skip_lines = max_line // 10
+            medium_after_front = [c for c in medium if c.line_index > skip_lines]
+            medium_front = [c for c in medium if c.line_index <= skip_lines]
+
+            # Prefer candidates from body of document
+            if len(medium_after_front) >= expected_chapters:
+                medium = medium_after_front
+            else:
+                # Use both but prioritize body content
+                medium = medium_after_front + medium_front
+
+            # Sort by line index to pick evenly spaced candidates
+            medium.sort(key=lambda c: c.line_index)
+
+            # Calculate ideal spacing for chapters
+            ideal_spacing = max_line // expected_chapters if expected_chapters > 0 else max_line
+            min_spacing = max(ideal_spacing // 3, 50)  # At least 50 lines or 1/3 ideal
+
+            # Pick candidates that are well-spaced
             for candidate in medium:
+                if len(anchors) >= expected_chapters:
+                    break
+                # Skip if too close to an existing anchor
+                if any(abs(candidate.line_index - a.line_index) < min_spacing for a in anchors):
+                    continue
+                anchors.append(candidate)
+
+            anchors.sort(key=lambda c: c.line_index)
+
+        # If still not enough, try low-confidence candidates with good context
+        if len(anchors) < self.MIN_ANCHORS:
+            low = [c for c in sorted_candidates
+                   if self.LOW_THRESHOLD <= c.confidence < self.MEDIUM_THRESHOLD
+                   and c.preceded_by_blank  # Must have blank line before
+                   and c.followed_by_prose]  # Must have content after
+            low.sort(key=lambda c: c.confidence, reverse=True)
+
+            for candidate in low:
                 if len(anchors) >= self.MIN_ANCHORS:
                     break
-                # Insert in correct position by line_index
+                if any(abs(candidate.line_index - a.line_index) < 20 for a in anchors):
+                    continue
                 anchors.append(candidate)
 
             anchors.sort(key=lambda c: c.line_index)
 
         return anchors
 
-    def merge(self, candidates: List[ChapterCandidate]) -> tuple:
+    def merge(self, candidates: List[ChapterCandidate], word_count: int = 0) -> tuple:
         """
         Perform full anchor selection and merge.
+
+        Args:
+            candidates: List of chapter candidates
+            word_count: Total word count for estimating expected chapters
 
         Returns:
             Tuple of (anchors, DetectionStats)
         """
-        anchors = self.select_anchors(candidates)
+        anchors = self.select_anchors(candidates, word_count)
         anchor_indices = {a.line_index for a in anchors}
 
         # Count merges (candidates not selected as anchors)
