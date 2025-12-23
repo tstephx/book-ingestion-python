@@ -430,5 +430,33 @@ def resplit(book_id):
     console.print(f"[dim]Max tokens per section: ~15,000[/dim]")
 
 
+@cli.command()
+@click.argument('file_path', type=click.Path(exists=True))
+def diagnose(file_path):
+    """Analyze chapter detection for a file and show diagnostic report.
+
+    This helps understand why certain books get medium/low confidence
+    and what might be improved.
+    """
+    from processors.detection_diagnostics import diagnose_pdf, diagnose_epub
+
+    path = Path(file_path)
+    ext = path.suffix.lower()
+
+    console.print(f"[blue]ℹ[/blue] Analyzing: {path.name}")
+    console.print()
+
+    if ext == '.pdf':
+        report = diagnose_pdf(str(path))
+    elif ext == '.epub':
+        report = diagnose_epub(str(path))
+    else:
+        console.print(f"[red]Unsupported file type: {ext}[/red]")
+        return
+
+    # Print with syntax highlighting for the report
+    console.print(report)
+
+
 if __name__ == '__main__':
     cli()
