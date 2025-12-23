@@ -49,7 +49,8 @@ def init():
 @click.option('--title', '-t', help='Book title (optional)')
 @click.option('--author', '-a', help='Author name (optional)')
 @click.option('--no-split', is_flag=True, help='Disable section splitting for large chapters')
-def process(file_path, title, author, no_split):
+@click.option('--debug', is_flag=True, help='Show chapter detection statistics')
+def process(file_path, title, author, no_split, debug):
     """Process a book file (PDF or EPUB)"""
     import uuid
 
@@ -111,8 +112,26 @@ def process(file_path, title, author, no_split):
         # Step 4: Split into chapters
         progress.add_task("Detecting chapters...", total=None)
         splitter = ChapterSplitter(config)
-        chapters = splitter.split(cleaned_text, book_id)
+        result = splitter.split_with_stats(cleaned_text, book_id)
+        chapters = result['chapters']
+        detection_stats = result['stats']
         console.print(f"[green]✓[/green] Detected {len(chapters)} chapters")
+
+        # Show debug stats if requested
+        if debug and detection_stats:
+            console.print("\n[bold cyan]Chapter Detection Statistics:[/bold cyan]")
+            console.print(f"  Method: {detection_stats.method}")
+            console.print(f"  Confidence: {detection_stats.confidence}")
+            console.print(f"  Candidates found: {detection_stats.candidates_found}")
+            console.print(f"  Candidates rejected: {detection_stats.candidates_rejected}")
+            console.print(f"  Anchors used: {detection_stats.anchors_used}")
+            console.print(f"  Merges performed: {detection_stats.merges_performed}")
+            console.print(f"  Code blocks detected: {detection_stats.code_blocks_detected}")
+            if detection_stats.warnings:
+                console.print("  [yellow]Warnings:[/yellow]")
+                for warning in detection_stats.warnings:
+                    console.print(f"    • {warning}")
+            console.print()
 
         # Step 4b: Validate chapter detection
         validation = validator.validate(cleaned_text, chapters, metadata.get('word_count', 0))
