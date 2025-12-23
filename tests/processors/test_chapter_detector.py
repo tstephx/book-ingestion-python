@@ -257,6 +257,31 @@ Back to text."""
         for c in code_candidates:
             assert c.in_code_block is True
 
+    def test_detects_packt_style_chapters(self):
+        """Should detect Packt cookbook style: standalone number + title on next line"""
+        text = """Table of Contents
+
+1
+Common Conventions and API Elements
+
+This chapter covers the basics.
+
+2
+Pre-Model Workflow and Data Preprocessing
+
+Content for chapter 2 goes here."""
+
+        candidates = self.extractor.extract(text)
+
+        # Should find both chapters
+        titles = [c.title for c in candidates]
+        assert any("Common Conventions" in t for t in titles)
+        assert any("Pre-Model Workflow" in t for t in titles)
+
+        # Should be marked as EXPLICIT type
+        ch1 = next(c for c in candidates if "Common Conventions" in c.title)
+        assert ch1.match_type == MatchType.EXPLICIT
+
 
 class TestAnchorMerger:
     def setup_method(self):

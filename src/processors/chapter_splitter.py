@@ -101,6 +101,27 @@ class ChapterSplitter:
             if len(chapter_titles) >= 3:
                 break
 
+        # Packt cookbook style: standalone number line followed by title line
+        # Example:
+        #   1
+        #   Common Conventions and API Elements of scikit-learn 1
+        if len(chapter_titles) < 3:
+            packt_titles = []
+            standalone_num = re.compile(r'^(\d{1,2})$')
+            for i, line in enumerate(lines[:500]):
+                stripped = line.strip()
+                num_match = standalone_num.match(stripped)
+                if num_match and i + 1 < len(lines):
+                    next_line = lines[i + 1].strip()
+                    # Next line should be the title (starts with capital, has length)
+                    if next_line and len(next_line) > 10 and next_line[0].isupper():
+                        # Remove trailing page number if present
+                        title = re.sub(r'\s+\d+\s*$', '', next_line)
+                        if len(title) > 5:
+                            packt_titles.append(title)
+            if len(packt_titles) >= 3:
+                chapter_titles = packt_titles
+
         return chapter_titles
 
     def _build_chapters_from_anchors(self, text: str, book_id: str,

@@ -160,11 +160,41 @@ class CandidateExtractor:
         code_lines = self._get_code_line_set(code_regions)
 
         candidates = []
+        standalone_num_pattern = re.compile(r'^(\d{1,2})$')
 
         for i, line in enumerate(lines):
             line_stripped = line.strip()
 
-            # Skip empty or very short/long lines
+            # Skip empty lines
+            if not line_stripped:
+                continue
+
+            # Check for Packt-style standalone chapter number (e.g., "1" on its own line)
+            # followed by a title on the next line
+            if len(line_stripped) <= 2:
+                num_match = standalone_num_pattern.match(line_stripped)
+                if num_match and i + 1 < len(lines):
+                    next_line = lines[i + 1].strip()
+                    # Next line should be a substantial title
+                    if (next_line and len(next_line) > 10 and
+                        next_line[0].isupper() and
+                        not re.match(r'^(Technical|Getting|How to)', next_line)):
+                        # Remove trailing page number if present
+                        title = re.sub(r'\s+\d+\s*$', '', next_line)
+                        if len(title) > 5:
+                            candidate = ChapterCandidate(
+                                line_index=i,
+                                title=title,
+                                match_type=MatchType.EXPLICIT,  # High priority
+                                preceded_by_blank=self._is_preceded_by_blank(lines, i),
+                                followed_by_prose=self._is_followed_by_prose(lines, i + 1),
+                                nearby_similar_lines=0,  # Standalone numbers aren't lists
+                                in_code_block=i in code_lines,
+                            )
+                            candidates.append(candidate)
+                continue
+
+            # Skip very short or very long lines for other patterns
             if len(line_stripped) < 3 or len(line_stripped) > 100:
                 continue
 
