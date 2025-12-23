@@ -80,6 +80,8 @@ class ChapterSplitter:
             (re.compile(r'^Chapter\s+(\d+),\s+([^,]+)', re.IGNORECASE), 2),
             # Apress style: "Chapter X: Title...page" or "Chapter X: Title"
             (re.compile(r'^Chapter\s+(\d+):\s+([^\.]+?)(?:\.{2,}|\s*$)', re.IGNORECASE), 2),
+            # O'Reilly style: "N. Title. . . . . ." (with spaced dots)
+            (re.compile(r'^(\d{1,2})\.\s+(.+?)(?:\.\s+\.|\.\s{2,})'), 2),
             # Project style: "Project XA: Title"
             (re.compile(r'^Project\s+(\d+[A-Z]):\s+(.+)', re.IGNORECASE), 2),
         ]
