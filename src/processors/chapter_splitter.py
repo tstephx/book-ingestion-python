@@ -76,31 +76,43 @@ class ChapterSplitter:
 
         # Patterns for different TOC formats
         toc_patterns = [
+            # No Starch Press style: "Chapter N: Title. . . . ." or "Chapter N: Title...page"
+            # The dots can be ". . ." (spaced) or "..." (consecutive)
+            (re.compile(r'^Chapter\s+(\d+):\s+(.+?)(?:\s+\.\s|\.\s*\.|\s*\.{2,})'), 2),
             # Packt style: "Chapter X, Title, description..."
             (re.compile(r'^Chapter\s+(\d+),\s+([^,]+)', re.IGNORECASE), 2),
             # Apress style: "Chapter X: Title...page" or "Chapter X: Title"
             (re.compile(r'^Chapter\s+(\d+):\s+([^\.]+?)(?:\.{2,}|\s*$)', re.IGNORECASE), 2),
-            # O'Reilly style: "N. Title. . . . . ." (with spaced dots)
-            (re.compile(r'^(\d{1,2})\.\s+(.+?)(?:\.\s+\.|\.\s{2,})'), 2),
+            # Leanpub/self-published style: "Chapter N - Title . . . ." or "Chapter N - Title"
+            (re.compile(r'^Chapter\s+(\d+)\s*-\s*(.+?)(?:\s+\.|\s*\.{2,}|\s*$)', re.IGNORECASE), 2),
+            # O'Reilly style: "N. Title. . . . . ." (with spaced dots) or "N. Title..."
+            (re.compile(r'^(\d{1,2})\.\s+(.+?)(?:\s+\.|\s*\.{2,})'), 2),
             # Project style: "Project XA: Title"
             (re.compile(r'^Project\s+(\d+[A-Z]):\s+(.+)', re.IGNORECASE), 2),
+            # DevOps Handbook style: "NN Title" (zero-padded chapter number)
+            (re.compile(r'^(\d{2})\s+([A-Z][^0-9]{15,})$'), 2),
         ]
 
-        # Try each pattern to find chapter titles in TOC
+        # Try each pattern in order - use first pattern with enough matches
+        # This prioritizes more specific patterns (listed first) over greedy ones
         chapter_titles = []
         for toc_pattern, title_group in toc_patterns:
-            chapter_titles = []
-            for line in lines[:400]:  # Extended for longer TOCs
+            titles_for_pattern = []
+            for line in lines[:600]:  # Extended for longer TOCs (some have 20+ chapters)
                 match = toc_pattern.match(line.strip())
                 if match:
                     # Strip whitespace from title
                     title = match.group(title_group).strip()
                     # Remove any trailing punctuation or whitespace
-                    title = title.rstrip(' \t\n\r')
-                    chapter_titles.append(title)
+                    title = title.rstrip(' \t\n\r.')
+                    # Skip titles that start with quotes (likely from testimonials/index)
+                    # Check both ASCII and Unicode curly quotes
+                    if len(title) >= 3 and not title[0] in '""\u201C\u201D':
+                        titles_for_pattern.append(title)
 
-            # If we found enough chapters with this pattern, use it
-            if len(chapter_titles) >= 3:
+            # Use first pattern that finds at least 3 chapters
+            if len(titles_for_pattern) >= 3:
+                chapter_titles = titles_for_pattern
                 break
 
         # Packt cookbook style: standalone number line followed by title line
@@ -157,6 +169,74 @@ class ChapterSplitter:
 
                 if len(packt_titles) >= 3:
                     chapter_titles = packt_titles
+
+        # Addison-Wesley style: "CHAPTER N" on one line, title on next line
+        # Example:
+        #   CHAPTER 1
+        #   What Is Software Architecture?  1
+        if len(chapter_titles) < 3:
+            aw_pattern = re.compile(r'^CHAPTER\s+(\d+)\s*$', re.IGNORECASE)
+            aw_pairs = []
+            for i, line in enumerate(lines[:400]):
+                match = aw_pattern.match(line.strip())
+                if match and i + 1 < len(lines):
+                    num = int(match.group(1))
+                    next_line = lines[i + 1].strip()
+                    # Title should be substantial and start with capital
+                    if next_line and len(next_line) > 10 and next_line[0].isupper():
+                        # Remove trailing page number
+                        title = re.sub(r'\s+\d+\s*$', '', next_line)
+                        if len(title) > 5:
+                            aw_pairs.append((num, title))
+
+            if aw_pairs:
+                by_num = {}
+                for num, title in aw_pairs:
+                    if num not in by_num:
+                        by_num[num] = title
+                aw_titles = []
+                expected = 1
+                while expected in by_num:
+                    aw_titles.append(by_num[expected])
+                    expected += 1
+                if len(aw_titles) >= 3:
+                    chapter_titles = aw_titles
+
+        # Manning style: standalone number, "I" marker, title on third line
+        # Example:
+        #   1
+        #   I
+        #   Improving your Python with practice
+        if len(chapter_titles) < 3:
+            manning_pairs = []
+            standalone_num = re.compile(r'^(\d{1,2})$')
+            for i, line in enumerate(lines[:400]):
+                stripped = line.strip()
+                num_match = standalone_num.match(stripped)
+                if num_match and i + 2 < len(lines):
+                    num = int(num_match.group(1))
+                    marker = lines[i + 1].strip()
+                    title_line = lines[i + 2].strip()
+                    # Check for "I" marker (Manning chapter marker)
+                    # Titles can be short (e.g., "Files", "Strings")
+                    if marker == 'I' and title_line and len(title_line) >= 4:
+                        # Remove trailing page number
+                        title = re.sub(r'\s+\d+\s*$', '', title_line)
+                        if len(title) >= 4 and title[0].isupper():
+                            manning_pairs.append((num, title))
+
+            if manning_pairs:
+                by_num = {}
+                for num, title in manning_pairs:
+                    if num not in by_num:
+                        by_num[num] = title
+                manning_titles = []
+                expected = 1
+                while expected in by_num:
+                    manning_titles.append(by_num[expected])
+                    expected += 1
+                if len(manning_titles) >= 3:
+                    chapter_titles = manning_titles
 
         return chapter_titles
 

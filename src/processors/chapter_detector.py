@@ -131,6 +131,7 @@ class CandidateExtractor:
         self.explicit_patterns = [
             re.compile(r'^(Chapter\s+\d+[:\s].*)$', re.IGNORECASE),
             re.compile(r'^(CHAPTER\s+\d+[:\s].*)$'),
+            re.compile(r'^(CHAPTER\s+\d+)$'),  # Standalone "CHAPTER N" (title on next line)
             re.compile(r'^(Part\s+\d+[:\s].*)$', re.IGNORECASE),
             re.compile(r'^(Lesson\s+\d+[:\s].*)$', re.IGNORECASE),
             re.compile(r'^(Module\s+\d+[:\s].*)$', re.IGNORECASE),
@@ -187,6 +188,11 @@ class CandidateExtractor:
                 if match:
                     title = match.group(1)
                     match_type = MatchType.EXPLICIT
+                    # For standalone "CHAPTER N", append title from next line
+                    if re.match(r'^CHAPTER\s+\d+$', title) and i + 1 < len(lines):
+                        next_line = lines[i + 1].strip()
+                        if next_line and len(next_line) > 3 and next_line[0].isupper():
+                            title = f"{title}: {next_line}"
                     break
 
             # Check generic patterns if no explicit match
@@ -449,6 +455,40 @@ class AnchorMerger:
     MIN_ANCHORS = 3  # Absolute minimum chapters
     WORDS_PER_CHAPTER = 8000  # Expect roughly 1 chapter per 8K words
 
+    def _normalize_title(self, title: str) -> str:
+        """Normalize title for deduplication comparison."""
+        import re
+        # Remove chapter number prefix but keep the rest of the title
+        # Patterns like "CHAPTER 1: Title" -> "Title", "Chapter 1" -> ""
+        normalized = re.sub(r'^(CHAPTER\s+\d+[:\s]*|Chapter\s+\d+[:\s]*)', '', title, flags=re.IGNORECASE)
+        # Lowercase and strip
+        return normalized.lower().strip()
+
+    def _is_duplicate_title(self, candidate: ChapterCandidate, existing: List[ChapterCandidate]) -> bool:
+        """Check if candidate has same title as an existing anchor.
+
+        Only considers titles as duplicates if they have substantial content
+        overlap, not just simple "Chapter N" variations.
+        """
+        candidate_norm = self._normalize_title(candidate.title)
+
+        # If the normalized title is empty or very short (just "chapter 1" type),
+        # don't consider it a duplicate based on title alone
+        if len(candidate_norm) < 5:
+            return False
+
+        for anchor in existing:
+            anchor_norm = self._normalize_title(anchor.title)
+            if len(anchor_norm) < 5:
+                continue
+            # Check for significant overlap (one contains the other or very similar)
+            if candidate_norm in anchor_norm or anchor_norm in candidate_norm:
+                return True
+            # Check for exact match after normalization
+            if candidate_norm == anchor_norm:
+                return True
+        return False
+
     def select_anchors(self, candidates: List[ChapterCandidate],
                        word_count: int = 0) -> List[ChapterCandidate]:
         """
@@ -458,6 +498,7 @@ class AnchorMerger:
         If too few anchors, promote best medium-confidence candidates.
         Uses word count to estimate expected chapters.
         Prefers candidates spread throughout the document (skips TOC area).
+        Deduplicates by title to avoid running headers being selected.
         """
         # Sort by line index for sequential processing
         sorted_candidates = sorted(candidates, key=lambda c: c.line_index)
@@ -472,8 +513,12 @@ class AnchorMerger:
         else:
             expected_chapters = self.MIN_ANCHORS
 
-        # Select high-confidence anchors
-        anchors = [c for c in sorted_candidates if c.confidence >= self.HIGH_THRESHOLD]
+        # Select high-confidence anchors, deduplicating by title
+        anchors = []
+        for c in sorted_candidates:
+            if c.confidence >= self.HIGH_THRESHOLD:
+                if not self._is_duplicate_title(c, anchors):
+                    anchors.append(c)
 
         # If not enough anchors, promote medium-confidence with spacing preference
         if len(anchors) < expected_chapters:
@@ -499,12 +544,15 @@ class AnchorMerger:
             ideal_spacing = max_line // expected_chapters if expected_chapters > 0 else max_line
             min_spacing = max(ideal_spacing // 3, 50)  # At least 50 lines or 1/3 ideal
 
-            # Pick candidates that are well-spaced
+            # Pick candidates that are well-spaced and not duplicates
             for candidate in medium:
                 if len(anchors) >= expected_chapters:
                     break
                 # Skip if too close to an existing anchor
                 if any(abs(candidate.line_index - a.line_index) < min_spacing for a in anchors):
+                    continue
+                # Skip if duplicate title
+                if self._is_duplicate_title(candidate, anchors):
                     continue
                 anchors.append(candidate)
 
@@ -522,6 +570,8 @@ class AnchorMerger:
                 if len(anchors) >= self.MIN_ANCHORS:
                     break
                 if any(abs(candidate.line_index - a.line_index) < 20 for a in anchors):
+                    continue
+                if self._is_duplicate_title(candidate, anchors):
                     continue
                 anchors.append(candidate)
 
