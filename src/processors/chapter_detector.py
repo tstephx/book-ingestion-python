@@ -145,13 +145,15 @@ class CandidateExtractor:
             re.compile(r'^(\d+)\s+([A-Z].{5,})$'),    # "1 Title Here"
         ]
 
-    def extract(self, text: str, toc_titles: List[str] = None) -> List[ChapterCandidate]:
+    def extract(self, text: str, toc_titles: List[str] = None,
+                is_external_toc: bool = False) -> List[ChapterCandidate]:
         """
         Extract chapter candidates from text.
 
         Args:
             text: Full book text
             toc_titles: Optional list of titles from TOC for matching
+            is_external_toc: True if TOC titles come from external source (EPUB nav)
 
         Returns:
             List of ChapterCandidate objects
@@ -223,7 +225,7 @@ class CandidateExtractor:
 
         # Check against TOC if provided
         if toc_titles:
-            candidates = self._match_toc_titles(candidates, toc_titles, lines)
+            candidates = self._match_toc_titles(candidates, toc_titles, lines, is_external_toc)
 
         # Packt-style detection: look for sequential chapter numbers
         # Pattern: standalone "1" then "2" then "3"... with substantial titles
@@ -411,37 +413,107 @@ class CandidateExtractor:
         capitalized = sum(1 for w in significant if w[0].isupper())
         return capitalized / len(significant) >= 0.7
 
+    def _normalize_for_matching(self, text: str) -> str:
+        """Normalize text for fuzzy TOC matching.
+
+        Removes punctuation and normalizes whitespace to enable matching
+        across different formatting (e.g., "Chapter 1 - Title" vs "Chapter 1  Title").
+        """
+        import re
+        # Replace dashes, colons, and multiple spaces with single space
+        normalized = re.sub(r'[\-–—:]+', ' ', text)
+        # Collapse multiple whitespace
+        normalized = re.sub(r'\s+', ' ', normalized)
+        return normalized.lower().strip()
+
     def _match_toc_titles(self, candidates: List[ChapterCandidate],
-                         toc_titles: List[str], lines: List[str]) -> List[ChapterCandidate]:
+                         toc_titles: List[str], lines: List[str],
+                         is_external_toc: bool = False) -> List[ChapterCandidate]:
         """Upgrade candidates that match TOC titles.
 
-        Only upgrades the first body occurrence (after line 1000) of each TOC title.
-        This prevents page headers (which repeat chapter titles) from being treated
-        as chapter starts.
+        Only upgrades the first occurrence of each TOC title.
+        For PDFs (internal TOC), skips first 1000 lines to avoid matching the TOC itself.
+        For external TOC (e.g., EPUB navigation), matches from the beginning.
+
+        Args:
+            candidates: List of chapter candidates
+            toc_titles: List of chapter titles from TOC
+            lines: Full text split into lines
+            is_external_toc: True if TOC titles come from external source (EPUB nav, etc.)
         """
-        toc_lower = [t.lower() for t in toc_titles]
+        # Normalize TOC titles for fuzzy matching
+        toc_normalized = [(self._normalize_for_matching(t), t) for t in toc_titles]
         matched_titles = set()  # Track which TOC titles we've matched
-        TOC_CUTOFF = 1000
+
+        # For PDFs with in-text TOC, skip the TOC area to avoid matching TOC entries
+        # For external TOC (EPUB), match from the start of the document
+        TOC_CUTOFF = 0 if is_external_toc else 1000
 
         # Sort by line index to process in document order
         sorted_candidates = sorted(candidates, key=lambda c: c.line_index)
 
         for candidate in sorted_candidates:
-            # Only upgrade body candidates (skip TOC area)
+            # Skip TOC area for PDFs
             if candidate.line_index < TOC_CUTOFF:
                 continue
 
-            title_lower = candidate.title.lower()
-            for toc_title in toc_lower:
-                # Check for significant overlap
-                if toc_title in title_lower or title_lower in toc_title:
-                    # Only upgrade if this is the first match for this TOC title
-                    if toc_title not in matched_titles:
-                        candidate.match_type = MatchType.TOC
-                        matched_titles.add(toc_title)
+            candidate_normalized = self._normalize_for_matching(candidate.title)
+
+            for toc_norm, toc_original in toc_normalized:
+                # Skip already matched titles
+                if toc_original in matched_titles:
+                    continue
+
+                # Check for significant overlap (fuzzy matching)
+                if (toc_norm in candidate_normalized or
+                    candidate_normalized in toc_norm or
+                    self._titles_match(candidate_normalized, toc_norm)):
+                    candidate.match_type = MatchType.TOC
+                    matched_titles.add(toc_original)
                     break
 
         return candidates
+
+    def _titles_match(self, title1: str, title2: str) -> bool:
+        """Check if two normalized titles are essentially the same.
+
+        Requires significant overlap to avoid false positives like
+        "how to test terraform" matching "how to create infrastructure".
+        """
+        # Exact match
+        if title1 == title2:
+            return True
+
+        words1 = title1.split()
+        words2 = title2.split()
+
+        # Skip very short titles (need at least 3 words for meaningful match)
+        if len(words1) < 3 or len(words2) < 3:
+            return False
+
+        # For partial matches, require at least 3 consecutive words to match
+        # This avoids false positives from common prefixes like "How to"
+        min_match = 3
+
+        # Check if first min_match words match
+        if words1[:min_match] == words2[:min_match]:
+            return True
+
+        # Also check if one is a prefix of the other (for truncated titles)
+        # Require at least 60% of the shorter title's words to match
+        shorter = words1 if len(words1) <= len(words2) else words2
+        longer = words2 if len(words1) <= len(words2) else words1
+
+        matching = 0
+        for i, word in enumerate(shorter):
+            if i < len(longer) and shorter[i] == longer[i]:
+                matching += 1
+            else:
+                break  # Stop at first mismatch for prefix matching
+
+        # Require at least 60% match and at least 3 words
+        required = max(min_match, int(len(shorter) * 0.6))
+        return matching >= required
 
 
 class AnchorMerger:

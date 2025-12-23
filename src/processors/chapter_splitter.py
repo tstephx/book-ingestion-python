@@ -25,24 +25,38 @@ class ChapterSplitter:
         self.scorer = CandidateScorer()
         self.merger = AnchorMerger()
 
-    def split(self, text: str, book_id: str) -> List[Dict]:
+    def split(self, text: str, book_id: str, external_toc_titles: List[str] = None) -> List[Dict]:
         """Backwards-compatible API - returns list of chapter dicts."""
-        result = self.split_with_stats(text, book_id)
+        result = self.split_with_stats(text, book_id, external_toc_titles)
         return result['chapters']
 
-    def split_with_stats(self, text: str, book_id: str) -> Dict:
-        """Split text into chapters with detection statistics."""
+    def split_with_stats(self, text: str, book_id: str, external_toc_titles: List[str] = None) -> Dict:
+        """Split text into chapters with detection statistics.
+
+        Args:
+            text: Full text content to split
+            book_id: Unique identifier for the book
+            external_toc_titles: Optional list of chapter titles from external source
+                                 (e.g., EPUB navigation). If provided and has 3+ titles,
+                                 these are used instead of text-based TOC detection.
+        """
         # Calculate word count for expected chapters estimation
         word_count = len(text.split())
 
         # Stage 1: Detect code blocks
         code_regions = self.code_detector.detect(text)
 
-        # Stage 2: Try TOC-based detection first
-        toc_titles = self._extract_toc_titles(text)
+        # Stage 2: Try TOC-based detection
+        # Prefer external TOC titles (from EPUB nav, etc.) if available
+        is_external_toc = False
+        if external_toc_titles and len(external_toc_titles) >= 3:
+            toc_titles = external_toc_titles
+            is_external_toc = True
+        else:
+            toc_titles = self._extract_toc_titles(text)
 
         # Stage 3: Extract candidates
-        candidates = self.extractor.extract(text, toc_titles)
+        candidates = self.extractor.extract(text, toc_titles, is_external_toc)
 
         # Stage 4: Score candidates
         for candidate in candidates:
