@@ -264,21 +264,33 @@ Back to text."""
 1
 Common Conventions and API Elements
 
-This chapter covers the basics.
+This chapter covers the basics with plenty of content.
 
 2
 Pre-Model Workflow and Data Preprocessing
 
-Content for chapter 2 goes here."""
+Content for chapter 2 goes here with more text.
+
+3
+Dimensionality Reduction Techniques
+
+Chapter 3 has even more content here.
+
+4
+Building Models with Distance Metrics
+
+And chapter 4 wraps up nicely."""
 
         candidates = self.extractor.extract(text)
 
-        # Should find both chapters
+        # Should find all 4 chapters
         titles = [c.title for c in candidates]
         assert any("Common Conventions" in t for t in titles)
         assert any("Pre-Model Workflow" in t for t in titles)
+        assert any("Dimensionality Reduction" in t for t in titles)
+        assert any("Building Models" in t for t in titles)
 
-        # Should be marked as EXPLICIT type
+        # Should be marked as EXPLICIT type (from Packt detection)
         ch1 = next(c for c in candidates if "Common Conventions" in c.title)
         assert ch1.match_type == MatchType.EXPLICIT
 

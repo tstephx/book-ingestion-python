@@ -95,8 +95,14 @@ class TextCleaner:
             stats.control_chars_removed = count
 
         # 6. Page number removal (existing)
+        # Skip first 600 lines to preserve chapter numbers in TOC
         if self.config.get('remove_page_numbers'):
-            cleaned = re.sub(r'^\s*\d+\s*$', '', cleaned, flags=re.MULTILINE)
+            lines = cleaned.split('\n')
+            # Only remove page numbers after line 600 (skip TOC area)
+            for i in range(600, len(lines)):
+                if re.match(r'^\s*\d+\s*$', lines[i]):
+                    lines[i] = ''
+            cleaned = '\n'.join(lines)
 
         # 7. Whitespace normalization (existing, enhanced)
         if self.config.get('normalize_whitespace'):
@@ -114,7 +120,8 @@ class TextCleaner:
         if HAS_BS4:
             # Use BeautifulSoup for robust HTML parsing
             soup = BeautifulSoup(text, 'html.parser')
-            return soup.get_text(separator=' ')
+            # Preserve newlines by using newline separator
+            return soup.get_text(separator='\n')
         else:
             # Fallback: simple regex-based tag removal
             # Remove HTML tags

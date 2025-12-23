@@ -169,29 +169,8 @@ class CandidateExtractor:
             if not line_stripped:
                 continue
 
-            # Check for Packt-style standalone chapter number (e.g., "1" on its own line)
-            # followed by a title on the next line
+            # Skip very short lines (handled by Packt detection below)
             if len(line_stripped) <= 2:
-                num_match = standalone_num_pattern.match(line_stripped)
-                if num_match and i + 1 < len(lines):
-                    next_line = lines[i + 1].strip()
-                    # Next line should be a substantial title
-                    if (next_line and len(next_line) > 10 and
-                        next_line[0].isupper() and
-                        not re.match(r'^(Technical|Getting|How to)', next_line)):
-                        # Remove trailing page number if present
-                        title = re.sub(r'\s+\d+\s*$', '', next_line)
-                        if len(title) > 5:
-                            candidate = ChapterCandidate(
-                                line_index=i,
-                                title=title,
-                                match_type=MatchType.EXPLICIT,  # High priority
-                                preceded_by_blank=self._is_preceded_by_blank(lines, i),
-                                followed_by_prose=self._is_followed_by_prose(lines, i + 1),
-                                nearby_similar_lines=0,  # Standalone numbers aren't lists
-                                in_code_block=i in code_lines,
-                            )
-                            candidates.append(candidate)
                 continue
 
             # Skip very short or very long lines for other patterns
@@ -239,6 +218,114 @@ class CandidateExtractor:
         # Check against TOC if provided
         if toc_titles:
             candidates = self._match_toc_titles(candidates, toc_titles, lines)
+
+        # Packt-style detection: look for sequential chapter numbers
+        # Pattern: standalone "1" then "2" then "3"... with substantial titles
+        packt_candidates = self._detect_packt_chapters(lines, code_lines)
+        if packt_candidates:
+            # Merge with existing candidates
+            # For Packt books, the TOC has chapter titles, but so does the body
+            # Keep body candidates (they have actual chapter content after them)
+            # Only remove TOC-area duplicates (first 1000 lines)
+            TOC_CUTOFF = 1000
+            packt_titles = {c.title.lower() for c in packt_candidates}
+
+            # Keep candidates that either:
+            # 1. Don't match any Packt title, OR
+            # 2. Are in the body (after TOC) - these are the actual chapter starts
+            candidates = [c for c in candidates
+                         if c.title.lower() not in packt_titles
+                         or c.line_index >= TOC_CUTOFF]
+            candidates.extend(packt_candidates)
+
+        return candidates
+
+    def _detect_packt_chapters(self, lines: List[str], code_lines: set) -> List[ChapterCandidate]:
+        """
+        Detect Packt cookbook-style chapters with sequential numbering.
+
+        Pattern: standalone number on one line, title on next line.
+        Only returns matches if we find a sequential run (1, 2, 3...).
+        Uses TOC occurrences (first ~1000 lines) to build the chain.
+        """
+        standalone_num = re.compile(r'^(\d{1,2})$')
+
+        # Collect all number -> title pairs from TOC area only
+        # (avoid matching page headers in body which repeat chapter titles)
+        TOC_LIMIT = 1000
+        pairs = []
+        for i, line in enumerate(lines[:TOC_LIMIT]):
+            stripped = line.strip()
+            num_match = standalone_num.match(stripped)
+            if num_match and i + 1 < len(lines):
+                num = int(num_match.group(1))
+                next_line = lines[i + 1].strip()
+                # Title criteria: substantial, starts with capital
+                # Must look like a complete chapter title, not a fragment
+                if (next_line and len(next_line) > 20 and
+                    next_line[0].isupper() and
+                    # Not a subsection header (common Packt subsection patterns)
+                    not re.match(r'^(Technical requirements|Getting ready|How to do|There.s more|Hands-on exercises|Exercise \d|Understanding \w+$|Introduction to [\w-]+.s|Common data|Working with metadata|Best practices for|Hyperparameter tuning|Encoding categorical|Scaling techniques|Cleaning and|Handling missing|Feature engineering$|Practical exercises|Pipelines and|Transformers and|What is a)', next_line, re.IGNORECASE) and
+                    # Not a title fragment (ending with preposition/article/conjunction)
+                    not re.search(r"\b(the|and|of|to|in|for|with|a|an|or)\s*$", next_line, re.IGNORECASE)):
+                    pairs.append((i, num, next_line))
+
+        if not pairs:
+            return []
+
+        # Find sequences starting from 1
+        # Group candidates by their chapter number
+        by_num = {}
+        for line_idx, num, title in pairs:
+            if num not in by_num:
+                by_num[num] = []
+            by_num[num].append((line_idx, title))
+
+        # Look for the best chain starting from 1
+        if 1 not in by_num:
+            return []
+
+        # For each "1" candidate, try to build a sequence
+        best_chain = []
+        for start_idx, start_title in by_num.get(1, []):
+            chain = [(start_idx, 1, start_title)]
+            current_idx = start_idx
+
+            for next_num in range(2, 20):  # Look for chapters 2-19
+                if next_num not in by_num:
+                    break
+                # Find the first occurrence of next_num after current position
+                found = False
+                for idx, title in by_num[next_num]:
+                    if idx > current_idx:
+                        chain.append((idx, next_num, title))
+                        current_idx = idx
+                        found = True
+                        break
+                if not found:
+                    break
+
+            if len(chain) > len(best_chain):
+                best_chain = chain
+
+        # Need at least 3 sequential chapters to be confident
+        if len(best_chain) < 3:
+            return []
+
+        # Convert to candidates
+        candidates = []
+        for line_idx, num, title in best_chain:
+            # Remove trailing page number if present
+            clean_title = re.sub(r'\s+\d+\s*$', '', title)
+            candidates.append(ChapterCandidate(
+                line_index=line_idx,
+                title=clean_title,
+                match_type=MatchType.EXPLICIT,
+                preceded_by_blank=self._is_preceded_by_blank(lines, line_idx),
+                followed_by_prose=self._is_followed_by_prose(lines, line_idx + 1),
+                nearby_similar_lines=0,
+                in_code_block=line_idx in code_lines,
+            ))
 
         return candidates
 
@@ -320,15 +407,32 @@ class CandidateExtractor:
 
     def _match_toc_titles(self, candidates: List[ChapterCandidate],
                          toc_titles: List[str], lines: List[str]) -> List[ChapterCandidate]:
-        """Upgrade candidates that match TOC titles"""
-        toc_lower = [t.lower() for t in toc_titles]
+        """Upgrade candidates that match TOC titles.
 
-        for candidate in candidates:
+        Only upgrades the first body occurrence (after line 1000) of each TOC title.
+        This prevents page headers (which repeat chapter titles) from being treated
+        as chapter starts.
+        """
+        toc_lower = [t.lower() for t in toc_titles]
+        matched_titles = set()  # Track which TOC titles we've matched
+        TOC_CUTOFF = 1000
+
+        # Sort by line index to process in document order
+        sorted_candidates = sorted(candidates, key=lambda c: c.line_index)
+
+        for candidate in sorted_candidates:
+            # Only upgrade body candidates (skip TOC area)
+            if candidate.line_index < TOC_CUTOFF:
+                continue
+
             title_lower = candidate.title.lower()
             for toc_title in toc_lower:
                 # Check for significant overlap
                 if toc_title in title_lower or title_lower in toc_title:
-                    candidate.match_type = MatchType.TOC
+                    # Only upgrade if this is the first match for this TOC title
+                    if toc_title not in matched_titles:
+                        candidate.match_type = MatchType.TOC
+                        matched_titles.add(toc_title)
                     break
 
         return candidates

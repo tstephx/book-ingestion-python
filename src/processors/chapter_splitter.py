@@ -105,22 +105,56 @@ class ChapterSplitter:
         # Example:
         #   1
         #   Common Conventions and API Elements of scikit-learn 1
+        # Must find sequential numbers (1, 2, 3...) to avoid matching subsections
         if len(chapter_titles) < 3:
-            packt_titles = []
+            packt_pairs = []
             standalone_num = re.compile(r'^(\d{1,2})$')
-            for i, line in enumerate(lines[:500]):
+
+            # Patterns for subsection headers to exclude
+            subsection_patterns = re.compile(
+                r'^(Technical requirements|Getting ready|How to do it|'
+                r'How it works|There.s more|Tere.s more|Hands-on exercises|'
+                r'Exercise \d|Understanding \w+$|Introduction to [\w\'\-]+.s|'
+                r'Common data|Common attributes|Working with metadata|Best practices for|'
+                r'Hyperparameter tuning|Encoding categorical|Scaling techniques|'
+                r'Cleaning and|Handling missing|Feature engineering$|'
+                r'Practical exercises|Pipelines and workﬂow|Transformers and the|'
+                r'Handling custom|What is a|Visualizing|Table of Contents|'
+                r'Te impact|The impact)',
+                re.IGNORECASE
+            )
+
+            for i, line in enumerate(lines[:1000]):
                 stripped = line.strip()
                 num_match = standalone_num.match(stripped)
                 if num_match and i + 1 < len(lines):
+                    num = int(num_match.group(1))
                     next_line = lines[i + 1].strip()
                     # Next line should be the title (starts with capital, has length)
-                    if next_line and len(next_line) > 10 and next_line[0].isupper():
+                    if (next_line and len(next_line) > 20 and next_line[0].isupper()
+                        and not subsection_patterns.match(next_line)):
                         # Remove trailing page number if present
                         title = re.sub(r'\s+\d+\s*$', '', next_line)
                         if len(title) > 5:
-                            packt_titles.append(title)
-            if len(packt_titles) >= 3:
-                chapter_titles = packt_titles
+                            packt_pairs.append((num, title))
+
+            # Find sequential chain starting from 1
+            if packt_pairs:
+                # Group by chapter number, keep first occurrence
+                by_num = {}
+                for num, title in packt_pairs:
+                    if num not in by_num:
+                        by_num[num] = title
+
+                # Build sequential chain
+                packt_titles = []
+                expected = 1
+                while expected in by_num:
+                    packt_titles.append(by_num[expected])
+                    expected += 1
+
+                if len(packt_titles) >= 3:
+                    chapter_titles = packt_titles
 
         return chapter_titles
 

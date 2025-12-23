@@ -112,12 +112,19 @@ class TestTextCleaner:
         assert "\n\n\n" not in result  # Max 2 newlines
 
     def test_page_number_removal(self, cleaner):
-        """Should remove standalone page numbers"""
-        text = "Chapter 1\n\n42\n\nContent here"
+        """Should remove standalone page numbers after TOC area (line 600+)"""
+        # Page number removal skips first 600 lines to preserve chapter numbers in TOC
+        # Build text with 605 lines, put page number at line 602
+        prefix_lines = ["Content line"] * 601  # Lines 0-600
+        test_lines = ["Chapter 5", "42", "More content"]  # Lines 601-603
+        text = '\n'.join(prefix_lines + test_lines)
+
         result = cleaner.clean(text)
-        # The standalone "42" should be removed
-        lines = [l for l in result.split('\n') if l.strip()]
-        assert '42' not in lines
+        # The standalone "42" at line 602 should be removed
+        lines = result.split('\n')
+        # Check lines after prefix area
+        tail_lines = [l.strip() for l in lines[600:] if l.strip()]
+        assert '42' not in tail_lines, f"'42' should be removed. Tail lines: {tail_lines[:10]}"
 
     def test_combined_cleaning(self, cleaner):
         """Test all cleaning operations together"""
