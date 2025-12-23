@@ -37,7 +37,20 @@ class BookDatabase:
                 FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
             )
         """)
-        
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS processing_checkpoints (
+                source_hash TEXT PRIMARY KEY,
+                book_id TEXT NOT NULL,
+                stage TEXT NOT NULL,
+                raw_text_path TEXT,
+                chapters_json TEXT,
+                error TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         self.conn.commit()
     
     def insert_book(self, book):
@@ -97,6 +110,66 @@ class BookDatabase:
         cursor.execute(
             "SELECT * FROM chapters WHERE book_id = ? ORDER BY chapter_number",
             (book_id,)
+        )
+        return [dict(row) for row in cursor.fetchall()]
+
+    def save_checkpoint(self, checkpoint):
+        """Save or update a processing checkpoint"""
+        import json
+        cursor = self.conn.cursor()
+        chapters_json = json.dumps(checkpoint.get('chapters')) if checkpoint.get('chapters') else None
+
+        cursor.execute("""
+            INSERT INTO processing_checkpoints
+                (source_hash, book_id, stage, raw_text_path, chapters_json, error, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(source_hash) DO UPDATE SET
+                stage = excluded.stage,
+                raw_text_path = excluded.raw_text_path,
+                chapters_json = excluded.chapters_json,
+                error = excluded.error,
+                updated_at = CURRENT_TIMESTAMP
+        """, (
+            checkpoint['source_hash'],
+            checkpoint['book_id'],
+            checkpoint['stage'],
+            checkpoint.get('raw_text_path'),
+            chapters_json,
+            checkpoint.get('error')
+        ))
+        self.conn.commit()
+
+    def get_checkpoint(self, source_hash):
+        """Get a checkpoint by source hash"""
+        import json
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "SELECT * FROM processing_checkpoints WHERE source_hash = ?",
+            (source_hash,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+
+        result = dict(row)
+        if result.get('chapters_json'):
+            result['chapters'] = json.loads(result['chapters_json'])
+        return result
+
+    def delete_checkpoint(self, source_hash):
+        """Delete a checkpoint"""
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "DELETE FROM processing_checkpoints WHERE source_hash = ?",
+            (source_hash,)
+        )
+        self.conn.commit()
+
+    def get_incomplete_checkpoints(self):
+        """Get all checkpoints that haven't completed"""
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "SELECT * FROM processing_checkpoints WHERE stage != 'completed' ORDER BY updated_at DESC"
         )
         return [dict(row) for row in cursor.fetchall()]
 
