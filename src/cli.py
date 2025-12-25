@@ -2,6 +2,12 @@
 Book Ingestion CLI - Python Version
 
 Simple, clean Python implementation for processing educational books.
+
+Enhanced with:
+- LLM-optimized text cleaning
+- Semantic chunking validation
+- Comprehensive quality metrics
+- Actionable recommendations
 """
 
 import click
@@ -26,6 +32,13 @@ from utils.config import Config
 
 console = Console()
 validator = ChapterValidator()
+
+# Import enhanced commands
+try:
+    from cli_enhanced import register_enhanced_commands
+    ENHANCED_AVAILABLE = True
+except ImportError:
+    ENHANCED_AVAILABLE = False
 
 @click.group()
 def cli():
@@ -459,4 +472,17 @@ def diagnose(file_path):
 
 
 if __name__ == '__main__':
+    # Register enhanced CLI commands
+    try:
+        from src.cli_enhanced import register_enhanced_commands
+        cli = register_enhanced_commands(cli)
+    except ImportError:
+        try:
+            # Try relative import for when running from src directory
+            from cli_enhanced import register_enhanced_commands
+            cli = register_enhanced_commands(cli)
+        except ImportError:
+            # Enhanced commands optional - continue without them
+            pass
+    
     cli()
