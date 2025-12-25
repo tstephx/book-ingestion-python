@@ -1,0 +1,4 @@
+[2025-12-24 19:28:09] [INFO] Found 55 already-processed books in database
+[2025-12-24 19:28:09] [INFO] Found 21 books in /Users/taylorstephens/Documents/_ebooks/Computer-Dec-23-2025 (recursive=True)
+[2025-12-24 19:28:09] [INFO] To process: 6, Skipped: 15
+[2025-12-24 19:28:09] [INFO] DRY RUN completed

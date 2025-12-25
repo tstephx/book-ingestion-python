@@ -1,0 +1,34 @@
+[2025-12-24 19:32:34] [INFO] Found 84 already-processed books in database
+[2025-12-24 19:32:34] [INFO] Found 15 books in /Users/taylorstephens/Documents/_ebooks/Finance-Tool (recursive=True)
+[2025-12-24 19:32:34] [INFO] To process: 15, Skipped: 0
+[2025-12-24 19:32:34] [INFO] Processing [1/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/Berkshire Hathaway Letters to Shareholders - Warren Buffett.epub
+[2025-12-24 19:32:35] [INFO] SUCCESS: Berkshire Hathaway Letters to Shareholders - Warren Buffett.epub - 34 chapters, 416343 words
+[2025-12-24 19:32:35] [INFO] Processing [2/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/Buffett and Munger Unscripted Three Decades of Investment and Business Insights from the Berkshire Hathaway Shareholder... (Warren E. Buffett, Charlie Munger) .epub
+[2025-12-24 19:32:36] [INFO] SUCCESS: Buffett and Munger Unscripted Three Decades of Investment and Business Insights from the Berkshire Hathaway Shareholder... (Warren E. Buffett, Charlie Munger) .epub - 23 chapters, 196969 words
+[2025-12-24 19:32:36] [INFO] Processing [3/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/Chen, Sam - Financial Data Analytics with Machine Learning, Optimization and Statistics.epub
+[2025-12-24 19:32:38] [INFO] SUCCESS: Chen, Sam - Financial Data Analytics with Machine Learning, Optimization and Statistics.epub - 4 chapters, 158433 words
+[2025-12-24 19:32:38] [INFO] Processing [4/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/Common Stocks and Uncommon Profits and Other Writings (Philip A Fisher).epub
+[2025-12-24 19:32:39] [INFO] SUCCESS: Common Stocks and Uncommon Profits and Other Writings (Philip A Fisher).epub - 14 chapters, 116596 words
+[2025-12-24 19:32:39] [INFO] Processing [5/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/Cutting-Edge Artificial Intelligence.epub
+[2025-12-24 19:32:39] [INFO] SUCCESS: Cutting-Edge Artificial Intelligence.epub - 7 chapters, 63792 words
+[2025-12-24 19:32:39] [INFO] Processing [6/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/Deep Reinforcement Learning with Python_2Ed_True.epub
+[2025-12-24 19:32:40] [INFO] SUCCESS: Deep Reinforcement Learning with Python_2Ed_True.epub - 8 chapters, 171046 words
+[2025-12-24 19:32:40] [INFO] Processing [7/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/Exploratory Data Analysis - Leandro Nunes de Castro.epub
+[2025-12-24 19:32:41] [INFO] SUCCESS: Exploratory Data Analysis - Leandro Nunes de Castro.epub - 9 chapters, 104133 words
+[2025-12-24 19:32:41] [INFO] Processing [8/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/Generative AI for Trading and Asset Management - Hamlet Jesse Medina Ruiz & Ernest P. Chan.epub
+[2025-12-24 19:32:41] [INFO] SUCCESS: Generative AI for Trading and Asset Management - Hamlet Jesse Medina Ruiz & Ernest P. Chan.epub - 11 chapters, 94519 words
+[2025-12-24 19:32:41] [INFO] Processing [9/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/Graham, Benjamin - The Intelligent Investor 3rd Ed (2024).epub
+[2025-12-24 19:32:42] [INFO] SUCCESS: Graham, Benjamin - The Intelligent Investor 3rd Ed (2024).epub - 23 chapters, 186358 words
+[2025-12-24 19:32:42] [INFO] Processing [10/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/Hands-On AI Trading with Python, QuantConnect, and AWS - Jiri Pik & Ernest P. Chan & Jared Broad & Philip Sun & Vivek Singh.epub
+[2025-12-24 19:32:43] [INFO] SUCCESS: Hands-On AI Trading with Python, QuantConnect, and AWS - Jiri Pik & Ernest P. Chan & Jared Broad & Philip Sun & Vivek Singh.epub - 11 chapters, 96905 words
+[2025-12-24 19:32:43] [INFO] Processing [11/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/Packt.Building.Agentic.AI.Systems.1803238755.epub
+[2025-12-24 19:32:43] [INFO] SUCCESS: Packt.Building.Agentic.AI.Systems.1803238755.epub - 4 chapters, 82037 words
+[2025-12-24 19:32:43] [INFO] Processing [12/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/Poor Charlie_s Almanack - The Essential Wit and Wisdom of Charles T. Munger.epub
+[2025-12-24 19:32:43] [INFO] SUCCESS: Poor Charlie_s Almanack - The Essential Wit and Wisdom of Charles T. Munger.epub - 10 chapters, 119739 words
+[2025-12-24 19:32:43] [INFO] Processing [13/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/Security Analysis_ Principles and Techniques, 7th Ed - Benjamin Graham, David L Dodd.epub
+[2025-12-24 19:32:45] [INFO] SUCCESS: Security Analysis_ Principles and Techniques, 7th Ed - Benjamin Graham, David L Dodd.epub - 46 chapters, 354653 words
+[2025-12-24 19:32:45] [INFO] Processing [14/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/Statistics with Julia - Yoni Nazarathy.epub
+[2025-12-24 19:32:46] [INFO] SUCCESS: Statistics with Julia - Yoni Nazarathy.epub - 18 chapters, 149799 words
+[2025-12-24 19:32:46] [INFO] Processing [15/15]: /Users/taylorstephens/Documents/_ebooks/Finance-Tool/The Warren Buffett Way, 30th Anniversary Edition - Robert G Hagstrom.epub
+[2025-12-24 19:32:47] [INFO] SUCCESS: The Warren Buffett Way, 30th Anniversary Edition - Robert G Hagstrom.epub - 11 chapters, 103953 words
+[2025-12-24 19:32:47] [INFO] SUMMARY: Processed=15, Failed=0, Skipped=0

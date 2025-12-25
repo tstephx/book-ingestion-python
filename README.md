@@ -2,8 +2,8 @@
 
 A robust Python pipeline for processing educational books (PDF/EPUB) into chapter-segmented markdown files with SQLite storage and semantic search capabilities.
 
-**Current Status:** Production ready with 58 books, 833 chapters, 4.2M words  
-**Integration:** Works with [book-mcp-server](../_Projects/book-mcp-server) for semantic search
+**Current Status:** Production ready with 102 books, 1,349 chapters, 9.9M words  
+**Integration:** Works with [book-mcp-server](../book-mcp-server) for semantic search
 
 ---
 
@@ -14,8 +14,8 @@ A robust Python pipeline for processing educational books (PDF/EPUB) into chapte
 ```bash
 cd /Users/taylorstephens/_Projects/book-ingestion-python
 
-# Create virtual environment
-python3 -m venv venv
+# Create virtual environment (use Python 3.12 - PyTorch doesn't support 3.13 yet)
+python3.12 -m venv venv
 
 # Activate it
 source venv/bin/activate
@@ -117,14 +117,16 @@ book-ingestion-python/
 │   │       ├── raw/original.txt
 │   │       └── chapters/
 │   ├── library.db                  # SQLite database
+│   ├── logs/                       # Batch processing logs
 │   └── temp/                       # Temporary files
 │
 ├── config/
 │   └── config.json                 # Configuration (optional)
 │
-├── batch_process.sh                # Batch processing script
+├── batch_process.sh                # Legacy batch script (use CLI batch instead)
 ├── clear_database.sh               # Database reset script
 ├── requirements.txt                # Python dependencies
+├── SKILL.md                        # Development workflow guide
 └── README.md                       # This file
 ```
 
@@ -155,6 +157,28 @@ python src/cli.py audit --fix                       # Attempt to fix issues
 python src/cli.py --help
 ```
 
+### Batch Processing (Recommended)
+
+```bash
+# Dry run first (shows what would be processed)
+python src/cli.py batch /path/to/ebooks --dry-run
+
+# Process all books in a directory
+python src/cli.py batch /path/to/ebooks
+
+# Non-recursive (flat directory only)
+python src/cli.py batch /path/to/ebooks --no-recursive
+
+# Custom log directory
+python src/cli.py batch /path/to/ebooks --log-dir /path/to/logs
+```
+
+**Features:**
+- Skips already-processed books (by filename match)
+- Recursive subdirectory scanning (default: on)
+- Saves timestamped logs to `data/logs/`
+- Dry-run mode for previewing
+
 ### Enhanced Analysis Commands
 
 ```bash
@@ -164,38 +188,23 @@ python src/cli.py analyze <book-id> --mode thorough
 python src/cli.py analyze <book-id> --semantic      # Include semantic analysis
 python src/cli.py analyze <book-id> --output report.md
 
-# Reprocess a book with new detection
-python src/cli.py reprocess <book-id>
-python src/cli.py reprocess <book-id> --strategy toc_deep
+# Preview chapter detection without saving
+python src/cli.py preview /path/to/book.pdf
 
-# Validate entire library
-python src/cli.py validate
-```
+# Diagnose chapter detection issues
+python src/cli.py diagnose /path/to/book.pdf
 
----
+# Validate a specific book
+python src/cli.py validate <book-id>
 
-## 📦 Batch Processing
+# Generate quality report for all books
+python src/cli.py quality-report
 
-Process multiple books at once:
+# Resplit large chapters
+python src/cli.py resplit <book-id>
 
-```bash
-# Make script executable
-chmod +x batch_process.sh
-
-# Process all books in a directory
-./batch_process.sh /path/to/books/directory
-
-# Example
-./batch_process.sh ~/Documents/ebooks/python-books
-```
-
-**Output:**
-```
-📚 Batch Processing Complete
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Processed: 15 books
-❌ Failed: 2 books
-📚 Total: 17 books
+# Merge over-fragmented chapters
+python src/cli.py merge-chapters <book-id>
 ```
 
 ---
@@ -242,7 +251,7 @@ python scripts/reprocess_problematic.py
 
 ## 🔗 Integration with book-mcp-server
 
-This pipeline works in tandem with [book-mcp-server](../_Projects/book-mcp-server) for semantic search:
+This pipeline works in tandem with [book-mcp-server](../book-mcp-server) for semantic search:
 
 ### Workflow
 
@@ -252,7 +261,7 @@ This pipeline works in tandem with [book-mcp-server](../_Projects/book-mcp-serve
 
 ```bash
 # 1. Process new books
-./batch_process.sh /path/to/new/books
+python src/cli.py batch /path/to/new/books
 
 # 2. Generate embeddings
 python scripts/generate_embeddings.py
@@ -306,8 +315,7 @@ CREATE TABLE books (
     word_count INTEGER,
     source_file TEXT,
     processing_status TEXT,
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
+    added_date TIMESTAMP
 );
 
 -- Chapters table
@@ -316,12 +324,23 @@ CREATE TABLE chapters (
     book_id TEXT,
     chapter_number INTEGER,
     title TEXT,
-    content TEXT,
-    word_count INTEGER,
     file_path TEXT,
+    word_count INTEGER,
     embedding BLOB,              -- Semantic embeddings
     embedding_model TEXT,        -- Model used (all-MiniLM-L6-v2)
     FOREIGN KEY (book_id) REFERENCES books(id)
+);
+
+-- Processing checkpoints (for resumable jobs)
+CREATE TABLE processing_checkpoints (
+    source_hash TEXT PRIMARY KEY,
+    book_id TEXT,
+    stage TEXT,
+    raw_text_path TEXT,
+    chapters_json TEXT,
+    error TEXT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
 );
 ```
 
@@ -349,6 +368,7 @@ tqdm>=4.66.0           # Progress bars
 python-magic>=0.4.27   # File type detection
 
 # Semantic Search (for embeddings)
+torch>=2.0.0                  # PyTorch (required by sentence-transformers)
 sentence-transformers>=2.2.0  # Embedding generation
 numpy>=1.24.0                 # Vector operations
 ```
@@ -356,6 +376,20 @@ numpy>=1.24.0                 # Vector operations
 ---
 
 ## 🐛 Troubleshooting
+
+### Python 3.13 not working?
+
+PyTorch doesn't support Python 3.13 yet. Use Python 3.12:
+
+```bash
+# Check your Python version
+python3 --version
+
+# If you have 3.13, use 3.12 explicitly
+python3.12 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
 ### Virtual environment not activating?
 
@@ -374,11 +408,10 @@ This often happens when Python version changes after creating the venv.
 ```bash
 # Check for version mismatch
 ./venv/bin/python --version
-./venv/bin/pip --version
 
-# If mismatched, recreate venv
+# If mismatched or broken, recreate venv
 rm -rf venv
-python3 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
@@ -395,6 +428,11 @@ Use `--debug` flag to see detection statistics:
 python src/cli.py process book.pdf --debug
 ```
 
+Or use the diagnose command:
+```bash
+python src/cli.py diagnose book.pdf
+```
+
 ### Chapter detection creating too many chapters?
 
 Use the audit command to identify issues:
@@ -402,9 +440,9 @@ Use the audit command to identify issues:
 python src/cli.py audit
 ```
 
-Then reprocess with a specific strategy:
+Then merge fragmented chapters:
 ```bash
-python src/cli.py reprocess <book-id> --strategy toc_deep
+python src/cli.py merge-chapters <book-id>
 ```
 
 ---
@@ -436,7 +474,7 @@ The pipeline tracks quality metrics for each book:
 - Section splitting for large chapters
 - Semantic embedding generation
 - Quality validation and profiling
-- Batch processing
+- Batch processing with skip/logging
 - Integration with MCP server
 
 ### 🔄 In Progress
@@ -464,16 +502,23 @@ pytest tests/ -v
 ```
 
 ### View Logs
-Processing logs appear in terminal with Rich formatting.
+
+Processing logs for batch jobs are saved to `data/logs/`.
+
+```bash
+ls -la data/logs/
+cat data/logs/batch_YYYYMMDD_HHMMSS.log
+```
 
 ### Common Issues
 
 | Issue | Solution |
 |-------|----------|
-| No chapters detected | Use `--debug` flag, try manual title/author |
-| Too many chapters | Run `audit --fix` or `reprocess` |
+| No chapters detected | Use `--debug` flag or `diagnose` command |
+| Too many chapters | Run `merge-chapters <book-id>` |
 | Embeddings missing | Run `scripts/generate_embeddings.py` |
-| Import errors | Recreate venv (see troubleshooting) |
+| Import errors | Recreate venv with Python 3.12 |
+| Python 3.13 errors | PyTorch requires Python 3.12 |
 
 ---
 
@@ -481,11 +526,12 @@ Processing logs appear in terminal with Rich formatting.
 
 - [Enhanced Chunking](docs/ENHANCED-CHUNKING.md) - Semantic chunking details
 - [Chapter Detection Improvements](docs/plans/CHAPTER-DETECTION-IMPROVEMENTS.md) - Planned improvements
-- [book-mcp-server README](../_Projects/book-mcp-server/README.md) - MCP integration
+- [SKILL.md](SKILL.md) - Development workflow guide
+- [book-mcp-server README](../book-mcp-server/README.md) - MCP integration
 
 ---
 
-**Version:** 2.0.0  
-**Python:** 3.10+  
+**Version:** 2.1.0  
+**Python:** 3.12 (3.13 not supported due to PyTorch)  
 **Status:** Production Ready ✅  
 **Last Updated:** December 2024

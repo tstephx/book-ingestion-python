@@ -25,16 +25,16 @@ from typing import List, Dict, Optional, Tuple
 from enum import Enum
 import statistics
 
-from src.processors.enhanced_text_cleaner import EnhancedTextCleaner, CleaningStats
-from src.processors.recursive_splitter import ChapterAwareSplitter, RecursiveTextSplitter
-from src.processors.semantic_chunker import (
+from .enhanced_text_cleaner import EnhancedTextCleaner, CleaningStats
+from .recursive_splitter import ChapterAwareSplitter, RecursiveTextSplitter
+from .semantic_chunker import (
     SemanticChunker, 
     ChapterBoundaryValidator,
     validate_chunking,
     SemanticChunkingResult
 )
-from src.processors.profiler import DataProfiler, BookProfile, QualityReport
-from src.processors.chapter_validator import ChapterValidator, ValidationResult
+from .profiler import DataProfiler, BookProfile, QualityReport
+from .chapter_validator import ChapterValidator, ValidationResult
 
 logger = logging.getLogger(__name__)
 
@@ -265,8 +265,8 @@ class EnhancedPipeline:
         merge_suggestions = []
         
         # Try TOC-based detection first
-        from src.processors.chapter_splitter import ChapterSplitter
-        from src.utils.config import Config
+        from .chapter_splitter import ChapterSplitter
+        from ..utils.config import Config
         
         try:
             config = Config()

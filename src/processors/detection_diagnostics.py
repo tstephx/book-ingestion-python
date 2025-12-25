@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Optional
 from pathlib import Path
 
-from src.processors.chapter_detector import (
+from .chapter_detector import (
     ChapterCandidate,
     CandidateExtractor,
     CandidateScorer,
@@ -12,8 +12,8 @@ from src.processors.chapter_detector import (
     DetectionStats,
     MatchType,
 )
-from src.processors.chapter_splitter import ChapterSplitter
-from src.utils.config import Config
+from .chapter_splitter import ChapterSplitter
+from ..utils.config import Config
 
 
 @dataclass
@@ -230,7 +230,7 @@ class DetectionDiagnostics:
 
 def diagnose_pdf(pdf_path: str) -> str:
     """Convenience function to diagnose a PDF file."""
-    from src.converters.pdf_converter import PDFConverter
+    from ..converters.pdf_converter import PDFConverter
 
     converter = PDFConverter()
     result = converter.convert(pdf_path)
@@ -245,7 +245,7 @@ def diagnose_pdf(pdf_path: str) -> str:
 
 def diagnose_epub(epub_path: str) -> str:
     """Convenience function to diagnose an EPUB file."""
-    from src.converters.epub_converter import EPUBConverter
+    from ..converters.epub_converter import EPUBConverter
 
     converter = EPUBConverter()
     result = converter.convert(epub_path)

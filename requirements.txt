@@ -20,5 +20,6 @@ tqdm>=4.66.0           # Progress bars
 python-magic>=0.4.27   # File type detection
 
 # Semantic search and embeddings
+torch>=2.0.0                  # PyTorch (required by sentence-transformers)
 sentence-transformers>=2.2.0  # Embedding generation
 numpy>=1.24.0                 # Vector operations

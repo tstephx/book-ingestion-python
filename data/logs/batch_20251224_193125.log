@@ -1,0 +1,32 @@
+[2025-12-24 19:31:25] [INFO] Found 61 already-processed books in database
+[2025-12-24 19:31:25] [INFO] Found 14 books in /Users/taylorstephens/Documents/_ebooks/General-Knowledge (recursive=True)
+[2025-12-24 19:31:25] [INFO] To process: 14, Skipped: 0
+[2025-12-24 19:31:25] [INFO] Processing [1/14]: /Users/taylorstephens/Documents/_ebooks/General-Knowledge/A Dirty Guide to a Clean Home by Melissa Dilkes Pateras.epub
+[2025-12-24 19:31:26] [INFO] SUCCESS: A Dirty Guide to a Clean Home by Melissa Dilkes Pateras.epub - 6 chapters, 57651 words
+[2025-12-24 19:31:26] [INFO] Processing [2/14]: /Users/taylorstephens/Documents/_ebooks/General-Knowledge/Art of Computer Programming, Volume 4A, Combinatorial Algorithms, Part 1, Second Digital Release, The - Donald Ervin Knuth.pdf
+[2025-12-24 19:31:30] [INFO] SUCCESS: Art of Computer Programming, Volume 4A, Combinatorial Algorithms, Part 1, Second Digital Release, The - Donald Ervin Knuth.pdf - 29 chapters, 502785 words
+[2025-12-24 19:31:30] [INFO] Processing [3/14]: /Users/taylorstephens/Documents/_ebooks/General-Knowledge/Art of Computer Programming, Volume 4B, Combinatorial Algorithms, Part 2, The - Donald Ervin Knuth.pdf
+[2025-12-24 19:31:32] [INFO] SUCCESS: Art of Computer Programming, Volume 4B, Combinatorial Algorithms, Part 2, The - Donald Ervin Knuth.pdf - 1 chapters, 17 words
+[2025-12-24 19:31:32] [INFO] Processing [4/14]: /Users/taylorstephens/Documents/_ebooks/General-Knowledge/Barry Davies - Soldier of Fortune Guide to How to Disappear and Never Be Found.pdf
+[2025-12-24 19:31:33] [INFO] SUCCESS: Barry Davies - Soldier of Fortune Guide to How to Disappear and Never Be Found.pdf - 7 chapters, 60191 words
+[2025-12-24 19:31:33] [INFO] Processing [5/14]: /Users/taylorstephens/Documents/_ebooks/General-Knowledge/CIA Lock Picking Field Operative 2012 by CIA BN Publishing.pdf
+[2025-12-24 19:31:33] [INFO] SUCCESS: CIA Lock Picking Field Operative 2012 by CIA BN Publishing.pdf - 3 chapters, 4810 words
+[2025-12-24 19:31:33] [INFO] Processing [6/14]: /Users/taylorstephens/Documents/_ebooks/General-Knowledge/Designing Experiences (J. Robert Rossman, Mathew D. Duerden).epub
+[2025-12-24 19:31:33] [INFO] SUCCESS: Designing Experiences (J. Robert Rossman, Mathew D. Duerden).epub - 8 chapters, 65352 words
+[2025-12-24 19:31:33] [INFO] Processing [7/14]: /Users/taylorstephens/Documents/_ebooks/General-Knowledge/G.M.M.V3.Systems.Mathematics.S.Parish.R.Beaubien.2024.10.(Updated)(Portfolio)[9780593719992].epub
+[2025-12-24 19:31:34] [INFO] SUCCESS: G.M.M.V3.Systems.Mathematics.S.Parish.R.Beaubien.2024.10.(Updated)(Portfolio)[9780593719992].epub - 10 chapters, 81612 words
+[2025-12-24 19:31:34] [INFO] Processing [8/14]: /Users/taylorstephens/Documents/_ebooks/General-Knowledge/G.M.M.V4.Economics.Art.S.Parish.R.Beaubien.2024.10.(Portfolio)[9780593720004].epub
+[2025-12-24 19:31:34] [INFO] SUCCESS: G.M.M.V4.Economics.Art.S.Parish.R.Beaubien.2024.10.(Portfolio)[9780593720004].epub - 10 chapters, 93409 words
+[2025-12-24 19:31:34] [INFO] Processing [9/14]: /Users/taylorstephens/Documents/_ebooks/General-Knowledge/Having People Over A Modern Guide to Planning, Throwing, and Attending Every Type of Party - Chelsea Fagan.epub
+[2025-12-24 19:31:34] [INFO] SUCCESS: Having People Over A Modern Guide to Planning, Throwing, and Attending Every Type of Party - Chelsea Fagan.epub - 4 chapters, 35020 words
+[2025-12-24 19:31:34] [INFO] Processing [10/14]: /Users/taylorstephens/Documents/_ebooks/General-Knowledge/How to Draw Stroke-by-Stroke - David Williams.pdf
+[2025-12-24 19:31:35] [INFO] SUCCESS: How to Draw Stroke-by-Stroke - David Williams.pdf - 4 chapters, 32829 words
+[2025-12-24 19:31:35] [INFO] Processing [11/14]: /Users/taylorstephens/Documents/_ebooks/General-Knowledge/Introduction to the Design and Analysis of Algorithms.pdf
+[2025-12-24 19:31:37] [INFO] SUCCESS: Introduction to the Design and Analysis of Algorithms.pdf - 6 chapters, 74324 words
+[2025-12-24 19:31:37] [INFO] Processing [12/14]: /Users/taylorstephens/Documents/_ebooks/General-Knowledge/Perfect Parties.epub
+[2025-12-24 19:31:37] [INFO] SUCCESS: Perfect Parties.epub - 4 chapters, 33586 words
+[2025-12-24 19:31:37] [INFO] Processing [13/14]: /Users/taylorstephens/Documents/_ebooks/General-Knowledge/The Selfish Gene_ 30th Annivers - Richard Dawkins.epub
+[2025-12-24 19:31:37] [INFO] SUCCESS: The Selfish Gene_ 30th Annivers - Richard Dawkins.epub - 47 chapters, 116838 words
+[2025-12-24 19:31:37] [INFO] Processing [14/14]: /Users/taylorstephens/Documents/_ebooks/General-Knowledge/The Total Knife Manual by T. Edward Nickens.epub
+[2025-12-24 19:31:38] [INFO] SUCCESS: The Total Knife Manual by T. Edward Nickens.epub - 6 chapters, 49850 words
+[2025-12-24 19:31:38] [INFO] SUMMARY: Processed=14, Failed=0, Skipped=0

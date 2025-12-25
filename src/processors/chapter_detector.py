@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import List, Optional
 
-from src.processors.code_block_detector import CodeBlockDetector
+from .code_block_detector import CodeBlockDetector
 
 
 class MatchType(IntEnum):

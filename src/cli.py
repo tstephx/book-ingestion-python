@@ -200,8 +200,8 @@ def process(file_path, title, author, no_split, debug):
         console.print(f"[dim]Sections: {len(sections)} (max ~15K tokens each)[/dim]")
     console.print(f"[dim]Total words: {metadata.get('word_count', 0):,}[/dim]")
 
-@cli.command()
-def list():
+@cli.command(name='list')
+def list_books():
     """List all processed books"""
     config = Config()
     db = BookDatabase(config.database_path)
@@ -348,6 +348,185 @@ def validate(book_id):
 
 
 @cli.command()
+@click.argument('directory', type=click.Path(exists=True))
+@click.option('--recursive/--no-recursive', default=True, help='Scan subdirectories recursively')
+@click.option('--dry-run', is_flag=True, help='Show what would be processed without actually processing')
+@click.option('--log-dir', type=click.Path(), default=None, help='Directory for log files (default: data/logs)')
+def batch(directory, recursive, dry_run, log_dir):
+    """Batch process books from a directory.
+    
+    Features:
+    - Skips already-processed books (by filename)
+    - Saves logs to timestamped file
+    - Recursive subdirectory scanning (default: on)
+    
+    Example:
+        python src/cli.py batch /path/to/ebooks
+        python src/cli.py batch /path/to/ebooks --dry-run
+        python src/cli.py batch /path/to/ebooks --no-recursive
+    """
+    import uuid
+    from datetime import datetime
+    
+    config = Config()
+    db = BookDatabase(config.database_path)
+    
+    # Setup logging
+    if log_dir is None:
+        log_dir = Path(config.output_dir).parent / 'logs'
+    else:
+        log_dir = Path(log_dir)
+    log_dir.mkdir(parents=True, exist_ok=True)
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_file = log_dir / f'batch_{timestamp}.log'
+    
+    def log(message, level='INFO'):
+        """Write to both console and log file"""
+        timestamp_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        log_entry = f"[{timestamp_str}] [{level}] {message}"
+        with open(log_file, 'a') as f:
+            f.write(log_entry + '\n')
+    
+    # Get already processed filenames
+    processed_filenames = db.get_processed_filenames()
+    console.print(f"[dim]Found {len(processed_filenames)} already-processed books in database[/dim]")
+    log(f"Found {len(processed_filenames)} already-processed books in database")
+    
+    # Find all PDF and EPUB files
+    directory = Path(directory)
+    if recursive:
+        pdf_files = list(directory.rglob('*.pdf'))
+        epub_files = list(directory.rglob('*.epub'))
+    else:
+        pdf_files = list(directory.glob('*.pdf'))
+        epub_files = list(directory.glob('*.epub'))
+    
+    all_files = sorted(pdf_files + epub_files, key=lambda p: p.name.lower())
+    
+    console.print(f"[blue]ℹ[/blue] Found {len(all_files)} books in {'recursive scan of' if recursive else ''} {directory}")
+    log(f"Found {len(all_files)} books in {directory} (recursive={recursive})")
+    
+    # Filter out already processed
+    to_process = []
+    skipped = []
+    for file_path in all_files:
+        if file_path.name in processed_filenames:
+            skipped.append(file_path)
+        else:
+            to_process.append(file_path)
+    
+    console.print(f"[green]→[/green] {len(to_process)} new books to process")
+    console.print(f"[yellow]→[/yellow] {len(skipped)} books skipped (already processed)")
+    log(f"To process: {len(to_process)}, Skipped: {len(skipped)}")
+    
+    if skipped:
+        console.print("\n[dim]Skipped books:[/dim]")
+        for f in skipped[:10]:  # Show first 10
+            console.print(f"  [dim]• {f.name}[/dim]")
+        if len(skipped) > 10:
+            console.print(f"  [dim]... and {len(skipped) - 10} more[/dim]")
+    
+    if dry_run:
+        console.print("\n[yellow]DRY RUN - No books will be processed[/yellow]")
+        console.print("\n[bold]Books that would be processed:[/bold]")
+        for f in to_process:
+            console.print(f"  • {f.name}")
+        log("DRY RUN completed")
+        return
+    
+    if not to_process:
+        console.print("\n[green]✓[/green] Nothing to process - all books already in library!")
+        log("No new books to process")
+        return
+    
+    # Process books
+    console.print(f"\n[bold]Processing {len(to_process)} books...[/bold]")
+    console.print(f"[dim]Log file: {log_file}[/dim]\n")
+    
+    processed = 0
+    failed = 0
+    
+    for i, file_path in enumerate(to_process, 1):
+        console.print(f"━━━ [{i}/{len(to_process)}] {file_path.name[:60]} ━━━")
+        log(f"Processing [{i}/{len(to_process)}]: {file_path}")
+        
+        try:
+            book_id = str(uuid.uuid4())
+            
+            # Convert
+            if file_path.suffix.lower() == '.pdf':
+                converter = PDFConverter()
+            else:
+                converter = EPUBConverter()
+            
+            result = converter.convert(str(file_path))
+            
+            if not result['success']:
+                raise Exception(result.get('error', 'Conversion failed'))
+            
+            # Clean
+            cleaner = TextCleaner(config)
+            cleaned_text = cleaner.clean(result['text'])
+            
+            # Extract metadata
+            extractor = MetadataExtractor()
+            metadata = extractor.extract(cleaned_text, str(file_path), result.get('metadata'))
+            metadata['id'] = book_id
+            metadata['source_file'] = str(file_path)
+            
+            # Split chapters
+            splitter = ChapterSplitter(config)
+            split_result = splitter.split_with_stats(cleaned_text, book_id)
+            chapters = split_result['chapters']
+            
+            # Section splitting
+            split_enabled = config.section_splitting.get('enabled', True)
+            sections = None
+            if split_enabled:
+                sections = split_chapters_for_ai(chapters, config.section_splitting)
+            
+            # Save
+            db.insert_book(metadata)
+            writer = FileWriter(config.output_dir)
+            
+            if sections and split_enabled:
+                writer.write_book_with_sections(metadata, chapters, sections, cleaned_text)
+            else:
+                writer.write_book(metadata, chapters, cleaned_text)
+            
+            for chapter in chapters:
+                db.insert_chapter(chapter)
+            
+            db.update_book_status(book_id, 'completed')
+            
+            console.print(f"[green]✓[/green] {metadata.get('title', 'Unknown')[:50]}")
+            console.print(f"  [dim]{len(chapters)} chapters, {metadata.get('word_count', 0):,} words[/dim]")
+            log(f"SUCCESS: {file_path.name} - {len(chapters)} chapters, {metadata.get('word_count', 0)} words")
+            processed += 1
+            
+        except Exception as e:
+            console.print(f"[red]✗[/red] Failed: {str(e)[:60]}")
+            log(f"FAILED: {file_path.name} - {str(e)}", level='ERROR')
+            failed += 1
+        
+        console.print()
+    
+    # Summary
+    console.print("━" * 50)
+    console.print(f"\n[bold]Batch Processing Complete[/bold]")
+    console.print(f"  [green]✓[/green] Processed: {processed}")
+    console.print(f"  [red]✗[/red] Failed: {failed}")
+    console.print(f"  [yellow]→[/yellow] Skipped: {len(skipped)}")
+    console.print(f"  [dim]Log: {log_file}[/dim]")
+    
+    log(f"SUMMARY: Processed={processed}, Failed={failed}, Skipped={len(skipped)}")
+    
+    if failed > 0:
+        console.print(f"\n[yellow]Check log file for failure details: {log_file}[/yellow]")
+
+
+@cli.command()
 @click.argument('book_id')
 def resplit(book_id):
     """Reprocess a book to split large chapters into sections"""
@@ -474,7 +653,7 @@ def diagnose(file_path):
 if __name__ == '__main__':
     # Register enhanced CLI commands
     try:
-        from src.cli_enhanced import register_enhanced_commands
+        from cli_enhanced import register_enhanced_commands
         cli = register_enhanced_commands(cli)
     except ImportError:
         try:

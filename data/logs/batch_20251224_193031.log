@@ -1,0 +1,16 @@
+[2025-12-24 19:30:31] [INFO] Found 55 already-processed books in database
+[2025-12-24 19:30:31] [INFO] Found 21 books in /Users/taylorstephens/Documents/_ebooks/Computer-Dec-23-2025 (recursive=True)
+[2025-12-24 19:30:31] [INFO] To process: 6, Skipped: 15
+[2025-12-24 19:30:31] [INFO] Processing [1/6]: /Users/taylorstephens/Documents/_ebooks/Computer-Dec-23-2025/Become_a_Ninja_with_Angular_v21.0.0.epub
+[2025-12-24 19:30:32] [INFO] SUCCESS: Become_a_Ninja_with_Angular_v21.0.0.epub - 3 chapters, 12008 words
+[2025-12-24 19:30:32] [INFO] Processing [2/6]: /Users/taylorstephens/Documents/_ebooks/Computer-Dec-23-2025/Building Production-Grade Web Applications with Supabase - David Lorenz.epub
+[2025-12-24 19:30:32] [INFO] SUCCESS: Building Production-Grade Web Applications with Supabase - David Lorenz.epub - 9 chapters, 128770 words
+[2025-12-24 19:30:32] [INFO] Processing [3/6]: /Users/taylorstephens/Documents/_ebooks/Computer-Dec-23-2025/Cloud Native Geospatial Analytics with Apache Sedona - Pawel Tokaj, Jia Yu, and Mo Sarwat.epub
+[2025-12-24 19:30:33] [INFO] SUCCESS: Cloud Native Geospatial Analytics with Apache Sedona - Pawel Tokaj, Jia Yu, and Mo Sarwat.epub - 11 chapters, 90774 words
+[2025-12-24 19:30:33] [INFO] Processing [4/6]: /Users/taylorstephens/Documents/_ebooks/Computer-Dec-23-2025/Data-driven Graphic Design- Creative Coding for Visual Communication - Andrew Richardson.epub
+[2025-12-24 19:30:33] [INFO] SUCCESS: Data-driven Graphic Design- Creative Coding for Visual Communication - Andrew Richardson.epub - 3 chapters, 25444 words
+[2025-12-24 19:30:33] [INFO] Processing [5/6]: /Users/taylorstephens/Documents/_ebooks/Computer-Dec-23-2025/Print_ Do More Art - Blackwood, Eve.epub
+[2025-12-24 19:30:34] [INFO] SUCCESS: Print_ Do More Art - Blackwood, Eve.epub - 3 chapters, 19814 words
+[2025-12-24 19:30:34] [INFO] Processing [6/6]: /Users/taylorstephens/Documents/_ebooks/Computer-Dec-23-2025/smashing-ebooks-06-getting-the-hang-of-web-typography.epub
+[2025-12-24 19:30:34] [INFO] SUCCESS: smashing-ebooks-06-getting-the-hang-of-web-typography.epub - 2 chapters, 29959 words
+[2025-12-24 19:30:34] [INFO] SUMMARY: Processed=6, Failed=0, Skipped=15

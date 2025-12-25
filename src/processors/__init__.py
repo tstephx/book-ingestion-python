@@ -14,8 +14,8 @@ This package contains processors for book ingestion:
 - enhanced_pipeline: Full processing pipeline with validation
 """
 
-from src.processors.chapter_splitter import ChapterSplitter
-from src.processors.chapter_detector import (
+from .chapter_splitter import ChapterSplitter
+from .chapter_detector import (
     ChapterCandidate,
     CandidateExtractor,
     CandidateScorer,
@@ -23,13 +23,13 @@ from src.processors.chapter_detector import (
     DetectionStats,
     MatchType,
 )
-from src.processors.chapter_validator import ChapterValidator, ValidationResult
-from src.processors.text_cleaner import TextCleaner, CleaningStats
-from src.processors.profiler import DataProfiler, BookProfile, QualityReport
-from src.processors.code_block_detector import CodeBlockDetector
+from .chapter_validator import ChapterValidator, ValidationResult
+from .text_cleaner import TextCleaner, CleaningStats
+from .profiler import DataProfiler, BookProfile, QualityReport
+from .code_block_detector import CodeBlockDetector
 
 # New modules for improved chunking
-from src.processors.semantic_chunker import (
+from .semantic_chunker import (
     validate_chunking,
     RecursiveTextSplitter as SemanticRecursiveSplitter,
     SemanticChunker,
@@ -38,7 +38,7 @@ from src.processors.semantic_chunker import (
     ChapterValidation,
     SemanticChunkingResult,
 )
-from src.processors.chunk_merger import (
+from .chunk_merger import (
     ChapterMerger,
     MergeCandidate,
     MergeResult,
@@ -46,19 +46,19 @@ from src.processors.chunk_merger import (
 )
 
 # Enhanced LangChain-style processors
-from src.processors.recursive_splitter import (
+from .recursive_splitter import (
     RecursiveTextSplitter,
     ChapterAwareSplitter,
     TextChunk,
     SplitResult,
     SeparatorType,
 )
-from src.processors.enhanced_text_cleaner import (
+from .enhanced_text_cleaner import (
     EnhancedTextCleaner,
     CleaningStats as EnhancedCleaningStats,
     clean_text_for_llm,
 )
-from src.processors.enhanced_pipeline import (
+from .enhanced_pipeline import (
     EnhancedPipeline,
     ProcessingMode,
     PipelineResult,

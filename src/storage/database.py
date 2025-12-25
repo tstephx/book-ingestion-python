@@ -173,6 +173,18 @@ class BookDatabase:
         )
         return [dict(row) for row in cursor.fetchall()]
 
+    def get_processed_filenames(self):
+        """Get set of filenames (basename only) that have been processed"""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT source_file FROM books WHERE processing_status = 'completed'")
+        filenames = set()
+        for row in cursor.fetchall():
+            if row['source_file']:
+                # Extract just the filename from the full path
+                filename = Path(row['source_file']).name
+                filenames.add(filename)
+        return filenames
+
     def close(self):
         """Close database connection"""
         self.conn.close()

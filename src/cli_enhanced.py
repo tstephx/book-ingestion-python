@@ -33,11 +33,11 @@ def register_enhanced_commands(cli):
         - Semantic boundary alignment
         - Quality score and recommendations
         """
-        from src.utils.config import Config
-        from src.storage.database import BookDatabase
-        from src.processors.enhanced_pipeline import EnhancedPipeline, ProcessingMode
-        from src.processors.semantic_chunker import validate_chunking, ChapterBoundaryValidator
-        from src.processors.profiler import DataProfiler
+        from utils.config import Config
+        from storage.database import BookDatabase
+        from processors.enhanced_pipeline import EnhancedPipeline, ProcessingMode
+        from processors.semantic_chunker import validate_chunking, ChapterBoundaryValidator
+        from processors.profiler import DataProfiler
         
         config = Config()
         db = BookDatabase(config.database_path)
@@ -191,10 +191,10 @@ def register_enhanced_commands(cli):
         
         Shows quality metrics, scores, and identifies books needing attention.
         """
-        from src.utils.config import Config
-        from src.storage.database import BookDatabase
-        from src.processors.profiler import DataProfiler
-        from src.processors.semantic_chunker import validate_chunking
+        from utils.config import Config
+        from storage.database import BookDatabase
+        from processors.profiler import DataProfiler
+        from processors.semantic_chunker import validate_chunking
         
         config = Config()
         db = BookDatabase(config.database_path)
@@ -317,8 +317,8 @@ def register_enhanced_commands(cli):
         Identifies chapters below the minimum word threshold and suggests
         or performs merges with adjacent chapters.
         """
-        from src.utils.config import Config
-        from src.storage.database import BookDatabase
+        from utils.config import Config
+        from storage.database import BookDatabase
         
         config = Config()
         db = BookDatabase(config.database_path)
@@ -424,11 +424,11 @@ def register_enhanced_commands(cli):
         
         Useful for testing detection quality before full processing.
         """
-        from src.converters.pdf_converter import PDFConverter
-        from src.converters.epub_converter import EPUBConverter
-        from src.processors.enhanced_pipeline import EnhancedPipeline, ProcessingMode
-        from src.processors.enhanced_text_cleaner import EnhancedTextCleaner
-        from src.utils.config import Config
+        from converters.pdf_converter import PDFConverter
+        from converters.epub_converter import EPUBConverter
+        from processors.enhanced_pipeline import EnhancedPipeline, ProcessingMode
+        from processors.enhanced_text_cleaner import EnhancedTextCleaner
+        from utils.config import Config
         import uuid
         
         file_path = Path(file_path)

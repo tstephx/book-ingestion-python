@@ -3,8 +3,8 @@
 import re
 from typing import List, Dict
 
-from src.processors.code_block_detector import CodeBlockDetector
-from src.processors.chapter_detector import (
+from .code_block_detector import CodeBlockDetector
+from .chapter_detector import (
     ChapterCandidate,
     CandidateExtractor,
     CandidateScorer,

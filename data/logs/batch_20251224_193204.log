@@ -1,0 +1,22 @@
+[2025-12-24 19:32:04] [INFO] Found 75 already-processed books in database
+[2025-12-24 19:32:04] [INFO] Found 9 books in /Users/taylorstephens/Documents/_ebooks/work-career (recursive=True)
+[2025-12-24 19:32:04] [INFO] To process: 9, Skipped: 0
+[2025-12-24 19:32:04] [INFO] Processing [1/9]: /Users/taylorstephens/Documents/_ebooks/work-career/Burn the Boats_ Toss Plan B Overboard and Unleash Your Full Potential - Matt Higgins.epub
+[2025-12-24 19:32:04] [INFO] SUCCESS: Burn the Boats_ Toss Plan B Overboard and Unleash Your Full Potential - Matt Higgins.epub - 8 chapters, 82752 words
+[2025-12-24 19:32:04] [INFO] Processing [2/9]: /Users/taylorstephens/Documents/_ebooks/work-career/HBR Guide to Your Job Search - Harvard Business Review.epub
+[2025-12-24 19:32:04] [INFO] SUCCESS: HBR Guide to Your Job Search - Harvard Business Review.epub - 22 chapters, 40181 words
+[2025-12-24 19:32:04] [INFO] Processing [3/9]: /Users/taylorstephens/Documents/_ebooks/work-career/How To Answer Interview Questions II - Peggy McKee.epub
+[2025-12-24 19:32:04] [INFO] SUCCESS: How To Answer Interview Questions II - Peggy McKee.epub - 5 chapters, 40124 words
+[2025-12-24 19:32:04] [INFO] Processing [4/9]: /Users/taylorstephens/Documents/_ebooks/work-career/Launching Your Side Hustle - Jason R. Rich.epub
+[2025-12-24 19:32:05] [INFO] SUCCESS: Launching Your Side Hustle - Jason R. Rich.epub - 9 chapters, 50242 words
+[2025-12-24 19:32:05] [INFO] Processing [5/9]: /Users/taylorstephens/Documents/_ebooks/work-career/LinkedIn for Personal Branding_ The Ultimate Guide - Sandra Long.epub
+[2025-12-24 19:32:05] [INFO] SUCCESS: LinkedIn for Personal Branding_ The Ultimate Guide - Sandra Long.epub - 22 chapters, 43628 words
+[2025-12-24 19:32:05] [INFO] Processing [6/9]: /Users/taylorstephens/Documents/_ebooks/work-career/Move. Think. Rest_ - Dr. Natalie Nixon.epub
+[2025-12-24 19:32:05] [INFO] SUCCESS: Move. Think. Rest_ - Dr. Natalie Nixon.epub - 7 chapters, 72485 words
+[2025-12-24 19:32:05] [INFO] Processing [7/9]: /Users/taylorstephens/Documents/_ebooks/work-career/Reverse+the+Search+-+Madeline+Mann.epub
+[2025-12-24 19:32:05] [INFO] SUCCESS: Reverse+the+Search+-+Madeline+Mann.epub - 4 chapters, 61789 words
+[2025-12-24 19:32:05] [INFO] Processing [8/9]: /Users/taylorstephens/Documents/_ebooks/work-career/The Professional - Tony Frost.epub
+[2025-12-24 19:32:06] [INFO] SUCCESS: The Professional - Tony Frost.epub - 9 chapters, 78882 words
+[2025-12-24 19:32:06] [INFO] Processing [9/9]: /Users/taylorstephens/Documents/_ebooks/work-career/Work the System - Sam Carpenter.epub
+[2025-12-24 19:32:06] [INFO] SUCCESS: Work the System - Sam Carpenter.epub - 21 chapters, 97543 words
+[2025-12-24 19:32:06] [INFO] SUMMARY: Processed=9, Failed=0, Skipped=0
