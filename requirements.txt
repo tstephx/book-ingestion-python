@@ -6,7 +6,7 @@ lxml>=4.9.0            # XML parsing
 
 # Text processing
 nltk>=3.8.0            # Natural Language Processing
-spacy>=3.7.0           # Advanced NLP (optional)
+spacy>=3.7.0           # Advanced NLP
 
 # Database
 # sqlite3 is built-in to Python
@@ -18,3 +18,7 @@ tqdm>=4.66.0           # Progress bars
 
 # Utilities
 python-magic>=0.4.27   # File type detection
+
+# Semantic search and embeddings
+sentence-transformers>=2.2.0  # Embedding generation
+numpy>=1.24.0                 # Vector operations

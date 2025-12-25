@@ -5,6 +5,7 @@
   "chapter_detection": {
     "min_words_per_chapter": 500,
     "max_words_per_chapter": 50000,
+    "target_words_per_chapter": 8000,
     "patterns": [
       "^Chapter\\s+(\\d+)",
       "^CHAPTER\\s+(\\d+)",
@@ -32,6 +33,27 @@
     "remove_headers": true,
     "remove_footers": true,
     "remove_page_numbers": true,
-    "normalize_whitespace": true
+    "normalize_whitespace": true,
+    "strip_markup": true,
+    "normalize_unicode": true,
+    "normalize_quotes": true,
+    "normalize_dashes": true,
+    "remove_control_chars": true
+  },
+  "quality_validation": {
+    "min_avg_words": 2000,
+    "max_avg_words": 25000,
+    "max_chapter_count": 40,
+    "min_chapter_count": 3,
+    "warn_on_over_fragmentation": true,
+    "auto_merge_threshold": 0.3
+  },
+  "semantic_chunking": {
+    "enabled": false,
+    "buffer_size": 200,
+    "breakpoint_threshold": 0.7,
+    "use_percentile": true,
+    "percentile_threshold": 0.9,
+    "model": "all-MiniLM-L6-v2"
   }
 }
