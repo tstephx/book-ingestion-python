@@ -11,14 +11,14 @@ Tests the integrated pipeline including:
 import pytest
 from dataclasses import asdict
 
-from src.processors.enhanced_pipeline import (
+from book_ingestion.processors.enhanced_pipeline import (
     EnhancedPipeline,
     ProcessingMode,
     PipelineResult,
     ChapterDetectionResult,
     process_book_enhanced
 )
-from src.processors.enhanced_text_cleaner import CleaningStats
+from book_ingestion.processors.enhanced_text_cleaner import CleaningStats
 
 
 class TestProcessingMode:
@@ -84,8 +84,8 @@ class TestPipelineResult:
         warnings: list = None
     ) -> PipelineResult:
         """Create a mock PipelineResult for testing"""
-        from src.processors.chapter_validator import ValidationResult
-        from src.processors.profiler import BookProfile, QualityReport
+        from book_ingestion.processors.chapter_validator import ValidationResult
+        from book_ingestion.processors.profiler import BookProfile, QualityReport
         
         cleaning_stats = CleaningStats(
             original_length=10000,

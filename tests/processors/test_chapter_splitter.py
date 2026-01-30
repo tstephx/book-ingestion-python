@@ -1,8 +1,8 @@
 """Tests for improved chapter splitter"""
 
 import pytest
-from src.processors.chapter_splitter import ChapterSplitter
-from src.utils.config import Config
+from book_ingestion.processors.chapter_splitter import ChapterSplitter
+from book_ingestion.utils.config import Config
 
 
 class TestImprovedChapterSplitter:

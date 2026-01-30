@@ -10,7 +10,7 @@ Tests LLM-optimized text cleaning including:
 """
 
 import pytest
-from src.processors.enhanced_text_cleaner import (
+from book_ingestion.processors.enhanced_text_cleaner import (
     EnhancedTextCleaner,
     CleaningStats,
     clean_text_for_llm

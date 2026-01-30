@@ -6,14 +6,14 @@ import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from src.processors.pipeline import (
+from book_ingestion.processors.pipeline import (
     ProcessingStage,
     ProcessingCheckpoint,
     ProcessingPipeline,
     PipelineResult
 )
-from src.storage.database import BookDatabase
-from src.utils.config import Config
+from book_ingestion.storage.database import BookDatabase
+from book_ingestion.utils.config import Config
 
 
 class TestProcessingStage:

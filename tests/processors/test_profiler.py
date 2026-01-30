@@ -1,7 +1,7 @@
 """Tests for data profiling"""
 
 import pytest
-from src.processors.profiler import DataProfiler, BookProfile, QualityReport
+from book_ingestion.processors.profiler import DataProfiler, BookProfile, QualityReport
 
 
 @pytest.fixture

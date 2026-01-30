@@ -9,7 +9,7 @@ Tests the intelligent chapter merging functionality:
 
 import pytest
 from copy import deepcopy
-from src.processors.chunk_merger import (
+from book_ingestion.processors.chunk_merger import (
     ChapterMerger,
     MergeCandidate,
     MergeResult,

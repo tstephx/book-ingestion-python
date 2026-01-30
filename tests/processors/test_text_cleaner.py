@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import MagicMock
-from src.processors.text_cleaner import TextCleaner, CleaningStats
+from book_ingestion.processors.text_cleaner import TextCleaner, CleaningStats
 
 
 @pytest.fixture
@@ -93,7 +93,7 @@ class TestTextCleaner:
     def test_html_entity_handling(self, cleaner):
         """Should handle HTML entities when bs4 not available"""
         # Test with regex fallback
-        from src.processors import text_cleaner
+        from book_ingestion.processors import text_cleaner
         original_has_bs4 = text_cleaner.HAS_BS4
         text_cleaner.HAS_BS4 = False
         try:

@@ -33,11 +33,11 @@ def register_enhanced_commands(cli):
         - Semantic boundary alignment
         - Quality score and recommendations
         """
-        from utils.config import Config
-        from storage.database import BookDatabase
-        from processors.enhanced_pipeline import EnhancedPipeline, ProcessingMode
-        from processors.semantic_chunker import validate_chunking, ChapterBoundaryValidator
-        from processors.profiler import DataProfiler
+        from book_ingestion.utils.config import Config
+        from book_ingestion.storage.database import BookDatabase
+        from book_ingestion.processors.enhanced_pipeline import EnhancedPipeline, ProcessingMode
+        from book_ingestion.processors.semantic_chunker import validate_chunking, ChapterBoundaryValidator
+        from book_ingestion.processors.profiler import DataProfiler
         
         config = Config()
         db = BookDatabase(config.database_path)
@@ -191,10 +191,10 @@ def register_enhanced_commands(cli):
         
         Shows quality metrics, scores, and identifies books needing attention.
         """
-        from utils.config import Config
-        from storage.database import BookDatabase
-        from processors.profiler import DataProfiler
-        from processors.semantic_chunker import validate_chunking
+        from book_ingestion.utils.config import Config
+        from book_ingestion.storage.database import BookDatabase
+        from book_ingestion.processors.profiler import DataProfiler
+        from book_ingestion.processors.semantic_chunker import validate_chunking
         
         config = Config()
         db = BookDatabase(config.database_path)
@@ -317,22 +317,22 @@ def register_enhanced_commands(cli):
         Identifies chapters below the minimum word threshold and suggests
         or performs merges with adjacent chapters.
         """
-        from utils.config import Config
-        from storage.database import BookDatabase
-        
+        from book_ingestion.utils.config import Config
+        from book_ingestion.storage.database import BookDatabase
+
         config = Config()
         db = BookDatabase(config.database_path)
-        
+
         book = db.get_book(book_id)
         if not book:
             console.print(f"[red]Book not found: {book_id}[/red]")
             return
-        
+
         chapters = db.get_chapters_by_book(book_id)
         if not chapters:
             console.print("[yellow]No chapters found[/yellow]")
             return
-        
+
         console.print(f"\n[bold cyan]Analyzing chapters for merging: {book['title'][:40]}[/bold cyan]\n")
         
         # Find merge candidates
@@ -424,11 +424,11 @@ def register_enhanced_commands(cli):
         
         Useful for testing detection quality before full processing.
         """
-        from converters.pdf_converter import PDFConverter
-        from converters.epub_converter import EPUBConverter
-        from processors.enhanced_pipeline import EnhancedPipeline, ProcessingMode
-        from processors.enhanced_text_cleaner import EnhancedTextCleaner
-        from utils.config import Config
+        from book_ingestion.converters.pdf_converter import PDFConverter
+        from book_ingestion.converters.epub_converter import EPUBConverter
+        from book_ingestion.processors.enhanced_pipeline import EnhancedPipeline, ProcessingMode
+        from book_ingestion.processors.enhanced_text_cleaner import EnhancedTextCleaner
+        from book_ingestion.utils.config import Config
         import uuid
         
         file_path = Path(file_path)

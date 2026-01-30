@@ -1,7 +1,7 @@
 """Tests for code block detection"""
 
 import pytest
-from src.processors.code_block_detector import CodeBlockDetector
+from book_ingestion.processors.code_block_detector import CodeBlockDetector
 
 
 class TestCodeBlockDetector:

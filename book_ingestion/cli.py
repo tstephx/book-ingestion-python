@@ -14,28 +14,24 @@ import click
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from pathlib import Path
-import sys
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent))
-
-from converters.pdf_converter import PDFConverter
-from converters.epub_converter import EPUBConverter
-from processors.chapter_splitter import ChapterSplitter
-from processors.text_cleaner import TextCleaner
-from processors.metadata_extractor import MetadataExtractor
-from processors.chapter_validator import ChapterValidator
-from processors.section_splitter import SectionSplitter, split_chapters_for_ai, estimate_tokens
-from storage.database import BookDatabase
-from storage.file_writer import FileWriter
-from utils.config import Config
+from book_ingestion.converters.pdf_converter import PDFConverter
+from book_ingestion.converters.epub_converter import EPUBConverter
+from book_ingestion.processors.chapter_splitter import ChapterSplitter
+from book_ingestion.processors.text_cleaner import TextCleaner
+from book_ingestion.processors.metadata_extractor import MetadataExtractor
+from book_ingestion.processors.chapter_validator import ChapterValidator
+from book_ingestion.processors.section_splitter import SectionSplitter, split_chapters_for_ai, estimate_tokens
+from book_ingestion.storage.database import BookDatabase
+from book_ingestion.storage.file_writer import FileWriter
+from book_ingestion.utils.config import Config
 
 console = Console()
 validator = ChapterValidator()
 
 # Import enhanced commands
 try:
-    from cli_enhanced import register_enhanced_commands
+    from book_ingestion.cli_enhanced import register_enhanced_commands
     ENHANCED_AVAILABLE = True
 except ImportError:
     ENHANCED_AVAILABLE = False
@@ -630,7 +626,7 @@ def diagnose(file_path):
     This helps understand why certain books get medium/low confidence
     and what might be improved.
     """
-    from processors.detection_diagnostics import diagnose_pdf, diagnose_epub
+    from book_ingestion.processors.detection_diagnostics import diagnose_pdf, diagnose_epub
 
     path = Path(file_path)
     ext = path.suffix.lower()
@@ -653,15 +649,10 @@ def diagnose(file_path):
 if __name__ == '__main__':
     # Register enhanced CLI commands
     try:
-        from cli_enhanced import register_enhanced_commands
+        from book_ingestion.cli_enhanced import register_enhanced_commands
         cli = register_enhanced_commands(cli)
     except ImportError:
-        try:
-            # Try relative import for when running from src directory
-            from cli_enhanced import register_enhanced_commands
-            cli = register_enhanced_commands(cli)
-        except ImportError:
-            # Enhanced commands optional - continue without them
-            pass
-    
+        # Enhanced commands optional - continue without them
+        pass
+
     cli()

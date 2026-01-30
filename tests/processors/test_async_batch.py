@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch, AsyncMock
 
-from src.processors.async_batch import (
+from book_ingestion.processors.async_batch import (
     BatchResult,
     BatchSummary,
     AsyncBatchProcessor,
@@ -136,7 +136,7 @@ class TestAsyncBatchProcessor:
 
     def test_process_books_with_mock(self):
         """Test processing with mocked single book processor"""
-        with patch('src.processors.async_batch._process_single_book') as mock_process:
+        with patch('book_ingestion.processors.async_batch._process_single_book') as mock_process:
             mock_process.return_value = BatchResult(
                 file_path="test.pdf",
                 success=True,
@@ -167,7 +167,7 @@ class TestAsyncBatchProcessor:
 
     def test_sync_process_with_mock(self):
         """Test synchronous processing with mock"""
-        with patch('src.processors.async_batch._process_single_book') as mock_process:
+        with patch('book_ingestion.processors.async_batch._process_single_book') as mock_process:
             mock_process.return_value = BatchResult(
                 file_path="test.pdf",
                 success=True,
@@ -198,7 +198,7 @@ class TestAsyncBatchProcessor:
         def on_progress(path, result):
             callback_calls.append((path, result))
 
-        with patch('src.processors.async_batch._process_single_book') as mock_process:
+        with patch('book_ingestion.processors.async_batch._process_single_book') as mock_process:
             mock_process.return_value = BatchResult(
                 file_path="test.pdf",
                 success=True
@@ -215,7 +215,7 @@ class TestAsyncBatchProcessor:
 
     def test_sync_process_handles_exceptions(self):
         """Test that exceptions are caught and converted to failed results"""
-        with patch('src.processors.async_batch._process_single_book') as mock_process:
+        with patch('book_ingestion.processors.async_batch._process_single_book') as mock_process:
             mock_process.side_effect = RuntimeError("Processing failed")
 
             with tempfile.TemporaryDirectory() as tmpdir:

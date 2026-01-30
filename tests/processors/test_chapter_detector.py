@@ -1,7 +1,7 @@
 """Tests for chapter candidate detection and scoring"""
 
 import pytest
-from src.processors.chapter_detector import (
+from book_ingestion.processors.chapter_detector import (
     AnchorMerger,
     ChapterCandidate,
     CandidateScorer,
@@ -162,7 +162,7 @@ class TestCandidateScorer:
 
 class TestCandidateExtractor:
     def setup_method(self):
-        from src.processors.chapter_detector import CandidateExtractor
+        from book_ingestion.processors.chapter_detector import CandidateExtractor
         self.extractor = CandidateExtractor()
 
     def test_extracts_explicit_chapter_markers(self):

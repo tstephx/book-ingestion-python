@@ -9,7 +9,7 @@ Tests the LangChain-inspired chunking improvements:
 """
 
 import pytest
-from src.processors.semantic_chunker import (
+from book_ingestion.processors.semantic_chunker import (
     RecursiveTextSplitter,
     validate_chunking,
     ChapterBoundaryValidator,
@@ -221,7 +221,7 @@ class TestSemanticChunker:
     
     def test_detect_boundaries_basic(self, check_semantic_available):
         """Should detect semantic boundaries"""
-        from src.processors.semantic_chunker import SemanticChunker
+        from book_ingestion.processors.semantic_chunker import SemanticChunker
         
         chunker = SemanticChunker()
         
@@ -253,11 +253,11 @@ class TestChunkingIntegration:
     
     def test_full_validation_pipeline(self):
         """Test complete validation pipeline"""
-        from src.processors.semantic_chunker import (
+        from book_ingestion.processors.semantic_chunker import (
             validate_chunking,
             ChapterBoundaryValidator,
         )
-        from src.processors.chunk_merger import ChapterMerger
+        from book_ingestion.processors.chunk_merger import ChapterMerger
         
         # Create test chapters
         chapters = [
@@ -276,8 +276,8 @@ class TestChunkingIntegration:
     
     def test_problematic_book_detection(self):
         """Test detection of problematic books"""
-        from src.processors.semantic_chunker import validate_chunking
-        from src.processors.chunk_merger import ChapterMerger
+        from book_ingestion.processors.semantic_chunker import validate_chunking
+        from book_ingestion.processors.chunk_merger import ChapterMerger
         
         # Create problematic chapters (over-fragmented)
         chapters = [
