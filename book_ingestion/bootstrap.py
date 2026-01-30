@@ -140,7 +140,7 @@ class BookIngestionApp:
         self._llm_fallback = llm_fallback
         self._logger = pipeline_logger or DefaultLogger()
         self._repository = repository
-        self._pipeline = EnhancedPipeline()
+        self._pipeline = EnhancedPipeline(mode=config.processing_mode)
 
         # Lazy-loaded components
         self._db = None
@@ -245,7 +245,6 @@ class BookIngestionApp:
                 text=text,
                 book_id=book_id,
                 external_toc_titles=metadata.get("toc_titles"),
-                mode=self.config.processing_mode,
             )
             self._logger.step_completed("pipeline")
 
