@@ -48,7 +48,7 @@ class FileWriter:
                 f.write(f"**Chapter {chapter['chapter_number']}**\n")
                 f.write(f"*Word Count: {chapter['word_count']}*\n\n")
                 f.write("---\n\n")
-                f.write(chapter['content'])
+                f.write(chapter.get('content', ''))
 
             # Update chapter with file path
             chapter['file_path'] = str(chapter_path)
