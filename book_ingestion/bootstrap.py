@@ -245,6 +245,7 @@ class BookIngestionApp:
                 text=text,
                 book_id=book_id,
                 external_toc_titles=metadata.get("toc_titles"),
+                enhanced_toc=metadata.get("enhanced_toc"),
             )
             self._logger.step_completed("pipeline")
 
@@ -299,26 +300,39 @@ class BookIngestionApp:
             )
 
     def _convert_book(self, file_path: Path) -> tuple[str, Dict]:
-        """Convert book file to text and extract metadata."""
+        """Convert book file to text and extract metadata.
+
+        For EPUB files with enhanced parsing enabled, metadata will include
+        'enhanced_toc' with split points and anchor map for precise chapter detection.
+        """
         ext = file_path.suffix.lower()
 
         if ext == ".pdf":
             from book_ingestion.converters.pdf_converter import PDFConverter
 
             converter = PDFConverter()
+            result = converter.convert(str(file_path))
         elif ext == ".epub":
             from book_ingestion.converters.epub_converter import EPUBConverter
 
             converter = EPUBConverter()
+            # Use enhanced parsing for precise chapter detection
+            result = converter.convert(str(file_path), enhanced=True)
         else:
             raise ValueError(f"Unsupported file format: {ext}")
-
-        result = converter.convert(str(file_path))
 
         if not result["success"]:
             raise RuntimeError(result.get("error", "Conversion failed"))
 
-        return result["text"], result.get("metadata", {})
+        metadata = result.get("metadata", {})
+
+        # Pass through enhanced_toc and toc_titles if available
+        if "enhanced_toc" in result:
+            metadata["enhanced_toc"] = result["enhanced_toc"]
+        if "toc_titles" in result:
+            metadata["toc_titles"] = result["toc_titles"]
+
+        return result["text"], metadata
 
     def _should_trigger_llm_fallback(self, result: PipelineResult) -> bool:
         """Determine if LLM fallback should be triggered."""

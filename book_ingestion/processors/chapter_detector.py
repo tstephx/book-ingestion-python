@@ -16,6 +16,7 @@ class MatchType(IntEnum):
     TITLE_CASE = 2   # Title-case heading preceded by blank
     EXPLICIT = 3     # Contains "Chapter", "Part", "Lesson", etc.
     TOC = 4          # Found in TOC and matched in body
+    EPUB_ANCHOR = 5  # Resolved EPUB anchor with exact line position
 
 
 @dataclass
@@ -68,6 +69,7 @@ class CandidateScorer:
 
     # Base scores by match type
     BASE_SCORES = {
+        MatchType.EPUB_ANCHOR: 0.95,  # Highest confidence - exact line position from EPUB anchor
         MatchType.TOC: 0.9,
         MatchType.EXPLICIT: 0.8,
         MatchType.TITLE_CASE: 0.5,
@@ -146,7 +148,9 @@ class CandidateExtractor:
         ]
 
     def extract(self, text: str, toc_titles: List[str] = None,
-                is_external_toc: bool = False) -> List[ChapterCandidate]:
+                is_external_toc: bool = False,
+                anchor_map: dict = None,
+                enhanced_toc = None) -> List[ChapterCandidate]:
         """
         Extract chapter candidates from text.
 
@@ -154,6 +158,8 @@ class CandidateExtractor:
             text: Full book text
             toc_titles: Optional list of titles from TOC for matching
             is_external_toc: True if TOC titles come from external source (EPUB nav)
+            anchor_map: Optional dict mapping full_href -> AnchorLocation for EPUB anchors
+            enhanced_toc: Optional EnhancedTOC with split points and anchor map
 
         Returns:
             List of ChapterCandidate objects
@@ -161,6 +167,13 @@ class CandidateExtractor:
         lines = text.split('\n')
         code_regions = self.code_detector.detect(text)
         code_lines = self._get_code_line_set(code_regions)
+
+        # If we have an enhanced TOC with anchor map, create candidates from anchors first
+        anchor_candidates = []
+        if enhanced_toc is not None and hasattr(enhanced_toc, 'anchor_map'):
+            anchor_candidates = self._extract_from_anchors(
+                enhanced_toc, lines, code_lines
+            )
 
         candidates = []
         standalone_num_pattern = re.compile(r'^(\d{1,2})$')
@@ -245,6 +258,70 @@ class CandidateExtractor:
                          if c.title.lower() not in packt_titles
                          or c.line_index >= TOC_CUTOFF]
             candidates.extend(packt_candidates)
+
+        # If we have anchor candidates, they should be the primary source
+        if anchor_candidates:
+            # EPUB anchors provide exact line positions for chapters
+            # Don't mix with TOC-matched candidates which may point to TOC listing
+            # Only include pattern-matched candidates that are:
+            # 1. Not overlapping with anchor lines
+            # 2. Not TOC-matched (those would be from the TOC section, not chapter bodies)
+            anchor_lines = {c.line_index for c in anchor_candidates}
+            non_overlapping = [c for c in candidates
+                               if c.line_index not in anchor_lines
+                               and c.match_type != MatchType.TOC]
+            return anchor_candidates + non_overlapping
+
+        return candidates
+
+    def _extract_from_anchors(self, enhanced_toc, lines: List[str],
+                              code_lines: set) -> List[ChapterCandidate]:
+        """
+        Extract chapter candidates from EPUB anchor map.
+
+        Creates high-confidence candidates for each resolved anchor that
+        represents a chapter boundary.
+
+        Depth handling:
+        - Depth 0: Top-level entries (actual chapters) - always include
+        - Depth 1+: Sections - only include if no depth 0 entries exist
+        """
+        candidates = []
+
+        # Check if we have top-level (depth 0) entries
+        has_chapters = any(sp.depth == 0 for sp in enhanced_toc.split_points)
+
+        # Get chapter-level split points
+        for sp in enhanced_toc.split_points:
+            # If we have depth 0 entries, only use those as chapter boundaries
+            # Otherwise fall back to depth 0 and 1
+            if has_chapters:
+                if sp.depth != 0:
+                    continue
+            else:
+                # No depth 0 entries - use depth 0 and 1
+                if sp.depth > 1:
+                    continue
+
+            # Check if this split point has a resolved anchor
+            full_href = sp.full_href
+            if full_href not in enhanced_toc.anchor_map:
+                continue
+
+            location = enhanced_toc.anchor_map[full_href]
+            line_idx = location.line_index
+
+            # Create high-confidence candidate from anchor
+            candidate = ChapterCandidate(
+                line_index=line_idx,
+                title=sp.title,
+                match_type=MatchType.EPUB_ANCHOR,
+                preceded_by_blank=self._is_preceded_by_blank(lines, line_idx),
+                followed_by_prose=self._is_followed_by_prose(lines, line_idx),
+                nearby_similar_lines=0,  # N/A for anchors
+                in_code_block=line_idx in code_lines,
+            )
+            candidates.append(candidate)
 
         return candidates
 

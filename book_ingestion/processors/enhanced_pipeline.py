@@ -167,30 +167,34 @@ class EnhancedPipeline:
         book_id: str,
         external_toc_titles: List[str] = None,
         metadata: Dict = None,
+        enhanced_toc=None,
     ) -> PipelineResult:
         """
         Process a book through the enhanced pipeline.
-        
+
         Args:
             text: Raw book text
             book_id: Unique book identifier
             external_toc_titles: Optional chapter titles from external source
             metadata: Optional book metadata
-            
+            enhanced_toc: Optional EnhancedTOC with split points and anchor map
+                         for precise chapter detection (from enhanced EPUB parser)
+
         Returns:
             PipelineResult with chapters and quality metrics
         """
         logger.info(f"Processing book {book_id} with mode={self.mode.value}")
-        
+
         # Step 1: Clean text
         cleaned_text, cleaning_stats = self.text_cleaner.clean(text, track_stats=True)
         logger.info(f"Cleaned text: {cleaning_stats.bytes_saved:,} bytes saved")
-        
+
         # Step 2: Detect chapters using multiple strategies
         detection_result = self._detect_chapters(
-            cleaned_text, 
-            book_id, 
-            external_toc_titles
+            cleaned_text,
+            book_id,
+            external_toc_titles,
+            enhanced_toc=enhanced_toc,
         )
         
         chapters = detection_result.chapters
@@ -246,16 +250,18 @@ class EnhancedPipeline:
         text: str,
         book_id: str,
         external_toc_titles: List[str] = None,
+        enhanced_toc=None,
     ) -> ChapterDetectionResult:
         """
         Detect chapters using multiple strategies.
-        
+
         Priority order:
-        1. External TOC (e.g., from EPUB navigation) - most reliable
-        2. Internal TOC detection
-        3. Semantic boundary detection (if enabled)
-        4. Recursive splitting with validation
-        5. Fixed-size fallback
+        1. EPUB anchor-based detection (highest confidence if enhanced_toc provided)
+        2. External TOC (e.g., from EPUB navigation) - most reliable
+        3. Internal TOC detection
+        4. Semantic boundary detection (if enabled)
+        5. Recursive splitting with validation
+        6. Fixed-size fallback
         """
         chapters = []
         method = "unknown"
@@ -263,15 +269,17 @@ class EnhancedPipeline:
         toc_chapters = 0
         semantic_boundaries = 0
         merge_suggestions = []
-        
+
         # Try TOC-based detection first
         from .chapter_splitter import ChapterSplitter
         from ..utils.config import Config
-        
+
         try:
             config = Config()
             splitter = ChapterSplitter(config)
-            result = splitter.split_with_stats(text, book_id, external_toc_titles)
+            result = splitter.split_with_stats(
+                text, book_id, external_toc_titles, enhanced_toc=enhanced_toc
+            )
             chapters = result['chapters']
             stats = result['stats']
             

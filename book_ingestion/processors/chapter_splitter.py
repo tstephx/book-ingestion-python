@@ -25,12 +25,14 @@ class ChapterSplitter:
         self.scorer = CandidateScorer()
         self.merger = AnchorMerger()
 
-    def split(self, text: str, book_id: str, external_toc_titles: List[str] = None) -> List[Dict]:
+    def split(self, text: str, book_id: str, external_toc_titles: List[str] = None,
+              enhanced_toc=None) -> List[Dict]:
         """Backwards-compatible API - returns list of chapter dicts."""
-        result = self.split_with_stats(text, book_id, external_toc_titles)
+        result = self.split_with_stats(text, book_id, external_toc_titles, enhanced_toc)
         return result['chapters']
 
-    def split_with_stats(self, text: str, book_id: str, external_toc_titles: List[str] = None) -> Dict:
+    def split_with_stats(self, text: str, book_id: str, external_toc_titles: List[str] = None,
+                         enhanced_toc=None) -> Dict:
         """Split text into chapters with detection statistics.
 
         Args:
@@ -39,6 +41,8 @@ class ChapterSplitter:
             external_toc_titles: Optional list of chapter titles from external source
                                  (e.g., EPUB navigation). If provided and has 3+ titles,
                                  these are used instead of text-based TOC detection.
+            enhanced_toc: Optional EnhancedTOC from enhanced EPUB parser with
+                         split points and anchor map for precise chapter detection.
         """
         # Calculate word count for expected chapters estimation
         word_count = len(text.split())
@@ -47,16 +51,23 @@ class ChapterSplitter:
         code_regions = self.code_detector.detect(text)
 
         # Stage 2: Try TOC-based detection
-        # Prefer external TOC titles (from EPUB nav, etc.) if available
+        # Priority: enhanced_toc > external_toc_titles > text-based extraction
         is_external_toc = False
-        if external_toc_titles and len(external_toc_titles) >= 3:
+        if enhanced_toc is not None and hasattr(enhanced_toc, 'titles'):
+            # Use titles from enhanced TOC
+            toc_titles = enhanced_toc.titles
+            is_external_toc = True
+        elif external_toc_titles and len(external_toc_titles) >= 3:
             toc_titles = external_toc_titles
             is_external_toc = True
         else:
             toc_titles = self._extract_toc_titles(text)
 
         # Stage 3: Extract candidates
-        candidates = self.extractor.extract(text, toc_titles, is_external_toc)
+        # Pass enhanced_toc for anchor-based extraction if available
+        candidates = self.extractor.extract(
+            text, toc_titles, is_external_toc, enhanced_toc=enhanced_toc
+        )
 
         # Stage 4: Score candidates
         for candidate in candidates:
@@ -65,6 +76,15 @@ class ChapterSplitter:
         # Stage 5: Select anchors and merge (pass word count for better estimation)
         anchors, stats = self.merger.merge(candidates, word_count)
         stats.code_blocks_detected = len(code_regions)
+
+        # Update stats if EPUB anchors were used
+        epub_anchor_count = sum(
+            1 for a in anchors if a.match_type == MatchType.EPUB_ANCHOR
+        )
+        if epub_anchor_count > 0:
+            stats.method = 'epub_anchor'
+            stats.confidence = 'high'
+            stats.anchors_used = epub_anchor_count
 
         # Build chapters from anchors
         if anchors:

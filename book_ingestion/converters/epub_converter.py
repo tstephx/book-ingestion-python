@@ -1,4 +1,4 @@
-"""EPUB Converter using ebooklib"""
+"""EPUB Converter using ebooklib with optional enhanced parsing."""
 
 import re
 from ebooklib import epub
@@ -6,8 +6,58 @@ from bs4 import BeautifulSoup
 
 
 class EPUBConverter:
-    def convert(self, file_path):
-        """Convert EPUB to text with chapter information from navigation."""
+    def convert(self, file_path, enhanced: bool = True):
+        """Convert EPUB to text with chapter information from navigation.
+
+        Args:
+            file_path: Path to the EPUB file
+            enhanced: If True (default), use enhanced parser with anchor resolution
+                      for precise chapter detection. If False, use basic extraction.
+
+        Returns:
+            Dict with keys:
+                - success: bool
+                - text: Full extracted text
+                - metadata: Dict with title, author, language
+                - toc_titles: List of chapter titles
+                - enhanced_toc: (enhanced=True only) EnhancedTOC with split points and anchor map
+        """
+        if enhanced:
+            return self._convert_enhanced(file_path)
+        else:
+            return self._convert_basic(file_path)
+
+    def _convert_enhanced(self, file_path):
+        """Convert using enhanced parser with anchor resolution."""
+        try:
+            from .enhanced_epub_parser import parse_epub, build_enhanced_toc
+
+            structure = parse_epub(file_path)
+            enhanced_toc = build_enhanced_toc(structure)
+
+            metadata = {
+                'title': structure.title,
+                'author': ', '.join(structure.authors) if structure.authors else '',
+                'language': 'en',  # Could be extracted from EPUB metadata if needed
+            }
+
+            return {
+                'success': True,
+                'text': structure.full_text,
+                'metadata': metadata,
+                'toc_titles': structure.toc_titles,
+                'enhanced_toc': enhanced_toc,
+            }
+
+        except Exception as e:
+            # Fall back to basic conversion on error
+            result = self._convert_basic(file_path)
+            if result['success']:
+                result['_enhanced_fallback'] = str(e)
+            return result
+
+    def _convert_basic(self, file_path):
+        """Convert using basic ebooklib extraction."""
         try:
             book = epub.read_epub(file_path)
 
