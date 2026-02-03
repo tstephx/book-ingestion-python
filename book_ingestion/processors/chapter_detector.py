@@ -274,6 +274,39 @@ class CandidateExtractor:
 
         return candidates
 
+    def _resolve_line_from_fingerprint(self, fingerprint: str, text: str,
+                                       hint_offset: int = 0) -> Optional[int]:
+        """Find the line index where a fingerprint appears in text.
+
+        Searches for the fingerprint substring, starting near hint_offset
+        for efficiency. Falls back to full-text search if not found nearby.
+
+        Returns line index or None if fingerprint not found.
+        """
+        if not fingerprint:
+            return None
+
+        # Use first 50 chars for matching (enough to be unique, robust to truncation)
+        search_str = fingerprint[:50]
+
+        # Search near the hint first (within ±20% of text length)
+        window = len(text) // 5
+        search_start = max(0, hint_offset - window)
+        pos = text.find(search_str, search_start)
+
+        # If not found near hint, search from beginning
+        if pos < 0 and search_start > 0:
+            pos = text.find(search_str, 0, search_start)
+
+        # Try shorter match if full match fails
+        if pos < 0 and len(fingerprint) > 30:
+            pos = text.find(fingerprint[:30])
+
+        if pos < 0:
+            return None
+
+        return text[:pos].count('\n')
+
     def _extract_from_anchors(self, enhanced_toc, lines: List[str],
                               code_lines: set) -> List[ChapterCandidate]:
         """
@@ -287,6 +320,7 @@ class CandidateExtractor:
         - Depth 1+: Sections - only include if no depth 0 entries exist
         """
         candidates = []
+        full_text = '\n'.join(lines)
 
         # Check if we have top-level (depth 0) entries
         has_chapters = any(sp.depth == 0 for sp in enhanced_toc.split_points)
@@ -309,7 +343,20 @@ class CandidateExtractor:
                 continue
 
             location = enhanced_toc.anchor_map[full_href]
-            line_idx = location.line_index
+
+            # Re-resolve using fingerprint (indices may be stale after text cleaning)
+            resolved_line = self._resolve_line_from_fingerprint(
+                location.fingerprint, full_text, hint_offset=location.char_offset
+            )
+
+            if resolved_line is not None:
+                line_idx = resolved_line
+            elif location.line_index < len(lines):
+                # Fallback: use original index if still in bounds
+                line_idx = location.line_index
+            else:
+                # Skip this anchor - can't resolve
+                continue
 
             # Create high-confidence candidate from anchor
             candidate = ChapterCandidate(

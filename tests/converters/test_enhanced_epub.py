@@ -339,6 +339,164 @@ class TestEPUBConverterEnhancedMode:
         assert "enhanced_toc" not in result
 
 
+class TestFingerprintReResolution:
+    """Tests for fingerprint-based line index re-resolution after text cleaning."""
+
+    def test_stale_index_resolved_via_fingerprint(self):
+        """When line_index exceeds len(lines) after cleaning, fingerprint resolves correctly."""
+        from book_ingestion.processors.chapter_detector import (
+            CandidateExtractor,
+            MatchType,
+        )
+
+        # Original text had 200 lines; after cleaning it has 100.
+        # Anchor's line_index=150 is now out of bounds.
+        cleaned_lines = [""] * 100
+        cleaned_lines[40] = "Chapter 1: The Beginning of everything important here"
+        cleaned_lines[80] = "Chapter 2: The Middle section covers advanced topics in detail"
+        # Add prose after each chapter
+        for i in range(41, 60):
+            cleaned_lines[i] = "This is substantial prose content with many words forming sentences."
+        for i in range(81, 99):
+            cleaned_lines[i] = "More detailed prose content follows here with complete sentences."
+
+        enhanced_toc = EnhancedTOC(
+            split_points=[
+                SplitPoint(title="Chapter 1", href="ch1.xhtml", depth=0, spine_index=0),
+                SplitPoint(title="Chapter 2", href="ch2.xhtml", depth=0, spine_index=1),
+            ],
+            spine_files=["ch1.xhtml", "ch2.xhtml"],
+            anchor_map={
+                "ch1.xhtml": AnchorLocation(
+                    href="ch1.xhtml",
+                    line_index=150,  # STALE: exceeds 100 lines
+                    char_offset=5000,
+                    fingerprint="Chapter 1: The Beginning of everything important here",
+                ),
+                "ch2.xhtml": AnchorLocation(
+                    href="ch2.xhtml",
+                    line_index=180,  # STALE: exceeds 100 lines
+                    char_offset=9000,
+                    fingerprint="Chapter 2: The Middle section covers advanced topics in detail",
+                ),
+            },
+        )
+
+        extractor = CandidateExtractor()
+        text = "\n".join(cleaned_lines)
+        candidates = extractor.extract(text, enhanced_toc=enhanced_toc)
+
+        anchor_candidates = [c for c in candidates if c.match_type == MatchType.EPUB_ANCHOR]
+        assert len(anchor_candidates) == 2
+        assert anchor_candidates[0].line_index == 40
+        assert anchor_candidates[1].line_index == 80
+
+    def test_fingerprint_not_found_uses_fallback(self):
+        """When fingerprint is missing from cleaned text, falls back to original index if valid."""
+        from book_ingestion.processors.chapter_detector import (
+            CandidateExtractor,
+            MatchType,
+        )
+
+        cleaned_lines = [""] * 50
+        cleaned_lines[10] = "Some chapter content that exists in the text here"
+        for i in range(11, 30):
+            cleaned_lines[i] = "Prose content with enough words to form complete sentences."
+
+        enhanced_toc = EnhancedTOC(
+            split_points=[
+                SplitPoint(title="Chapter 1", href="ch1.xhtml", depth=0, spine_index=0),
+            ],
+            spine_files=["ch1.xhtml"],
+            anchor_map={
+                "ch1.xhtml": AnchorLocation(
+                    href="ch1.xhtml",
+                    line_index=10,  # Still valid (< 50)
+                    char_offset=100,
+                    fingerprint="ZZZZZ completely nonexistent fingerprint text nowhere",
+                ),
+            },
+        )
+
+        extractor = CandidateExtractor()
+        text = "\n".join(cleaned_lines)
+        candidates = extractor.extract(text, enhanced_toc=enhanced_toc)
+
+        anchor_candidates = [c for c in candidates if c.match_type == MatchType.EPUB_ANCHOR]
+        assert len(anchor_candidates) == 1
+        assert anchor_candidates[0].line_index == 10  # Fell back to original
+
+    def test_fingerprint_not_found_and_index_out_of_bounds_skips(self):
+        """When fingerprint missing AND line_index out of bounds, anchor is skipped."""
+        from book_ingestion.processors.chapter_detector import (
+            CandidateExtractor,
+            MatchType,
+        )
+
+        cleaned_lines = ["content"] * 20
+
+        enhanced_toc = EnhancedTOC(
+            split_points=[
+                SplitPoint(title="Chapter 1", href="ch1.xhtml", depth=0, spine_index=0),
+            ],
+            spine_files=["ch1.xhtml"],
+            anchor_map={
+                "ch1.xhtml": AnchorLocation(
+                    href="ch1.xhtml",
+                    line_index=500,  # Way out of bounds
+                    char_offset=50000,
+                    fingerprint="ZZZZZ completely nonexistent fingerprint text nowhere",
+                ),
+            },
+        )
+
+        extractor = CandidateExtractor()
+        text = "\n".join(cleaned_lines)
+        candidates = extractor.extract(text, enhanced_toc=enhanced_toc)
+
+        anchor_candidates = [c for c in candidates if c.match_type == MatchType.EPUB_ANCHOR]
+        assert len(anchor_candidates) == 0  # Skipped entirely
+
+    def test_resolve_line_from_fingerprint_direct(self):
+        """Direct test of _resolve_line_from_fingerprint method."""
+        from book_ingestion.processors.chapter_detector import CandidateExtractor
+
+        extractor = CandidateExtractor()
+
+        text = "line zero\nline one\nline two\nthe target fingerprint text is here on line three\nline four"
+
+        # Should find at line 3
+        result = extractor._resolve_line_from_fingerprint(
+            "the target fingerprint text is here on line three", text, hint_offset=0
+        )
+        assert result == 3
+
+        # Empty fingerprint returns None
+        assert extractor._resolve_line_from_fingerprint("", text) is None
+
+        # Missing fingerprint returns None
+        assert extractor._resolve_line_from_fingerprint("ZZZZ not in text at all ever", text) is None
+
+    def test_resolve_line_with_hint_offset(self):
+        """Hint offset helps find fingerprint faster near expected location."""
+        from book_ingestion.processors.chapter_detector import CandidateExtractor
+
+        extractor = CandidateExtractor()
+
+        # Build a large text where the fingerprint is near the end
+        lines = [f"filler line {i}" for i in range(1000)]
+        lines[900] = "the unique fingerprint content that we are searching for right here"
+        text = "\n".join(lines)
+
+        char_offset = text.find("the unique fingerprint content")
+        result = extractor._resolve_line_from_fingerprint(
+            "the unique fingerprint content that we are searching for right here",
+            text,
+            hint_offset=char_offset
+        )
+        assert result == 900
+
+
 class TestAnchorResolution:
     """Tests for anchor resolution logic."""
 
