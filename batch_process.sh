@@ -12,7 +12,7 @@ if [ -z "$1" ]; then
     echo "Usage: ./batch_process.sh <directory>"
     echo ""
     echo "Example:"
-    echo "  ./batch_process.sh /Users/taylorstephens/Documents/_ebooks/python-ai-learning-books"
+    echo "  ./batch_process.sh /path/to/your/ebooks"
     exit 1
 fi
 

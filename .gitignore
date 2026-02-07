@@ -14,6 +14,9 @@ build/
 data/books/
 data/temp/
 data/library.db
+data/logs/
+data/processed/
+data/*.backup*
 
 # IDE
 .idea/

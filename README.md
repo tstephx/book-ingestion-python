@@ -12,7 +12,7 @@ A robust Python pipeline for processing educational books (PDF/EPUB) into chapte
 ### Step 1: Create Virtual Environment
 
 ```bash
-cd /Users/taylorstephens/_Projects/book-ingestion-python
+cd /path/to/book-ingestion-python
 
 # Create virtual environment (use Python 3.12 - PyTorch doesn't support 3.13 yet)
 python3.12 -m venv venv
@@ -214,7 +214,7 @@ python src/cli.py merge-chapters <book-id>
 ### Generate Embeddings (for Semantic Search)
 
 ```bash
-cd /Users/taylorstephens/_Projects/book-ingestion-python
+cd /path/to/book-ingestion-python
 source venv/bin/activate
 
 # Generate embeddings for new chapters only
@@ -273,7 +273,7 @@ python scripts/generate_embeddings.py
 
 Both projects share the same database:
 ```
-/Users/taylorstephens/_Projects/book-ingestion-python/data/library.db
+data/library.db
 ```
 
 ---
@@ -395,7 +395,7 @@ pip install -r requirements.txt
 
 ```bash
 # Make sure you're in the project directory
-cd /Users/taylorstephens/_Projects/book-ingestion-python
+cd /path/to/book-ingestion-python
 
 # Try this instead
 . venv/bin/activate
