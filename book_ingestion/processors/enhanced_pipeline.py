@@ -298,17 +298,39 @@ class EnhancedPipeline:
         
         # Validate and potentially improve detection
         quick_check = validate_chunking(chapters)
-        
+
         if not quick_check['valid']:
             logger.warning(f"Initial detection issue: {quick_check['issue']}")
-            
+
             # Try to fix over-fragmentation
             if quick_check['issue'] == 'over-fragmentation':
                 chapters, merges = self._merge_small_chapters(chapters, book_id)
                 merge_suggestions = merges
                 method = f"{method}_merged"
                 confidence = min(confidence + 0.1, 0.8)
-        
+
+        # Post-detection quality gate: if most chapters are near-empty
+        # (< 100 words), the TOC matched the Table of Contents page rather
+        # than actual chapter positions. Fall back to fixed-size splitting.
+        total_words = sum(c.get('word_count', 0) for c in chapters)
+        near_empty = sum(1 for c in chapters if c.get('word_count', 0) < 100)
+        if len(chapters) > 1 and near_empty > len(chapters) * 0.5 and total_words < len(text.split()) * 0.5:
+            logger.warning(
+                f"Degenerate detection: {near_empty}/{len(chapters)} chapters have < 100 words "
+                f"({total_words} captured vs {len(text.split())} total). "
+                f"Falling back to fixed-size splitting."
+            )
+            try:
+                chapters = splitter._fixed_size_split(text, book_id)
+                method = "fallback"
+                confidence = 0.4
+            except Exception:
+                # If splitter not available (exception path), use recursive
+                split_result = self.chapter_splitter.split(text)
+                chapters = self._splits_to_chapters(split_result.chunks, book_id)
+                method = "recursive_fallback"
+                confidence = 0.4
+
         # Add semantic boundary count if available
         if self.enable_semantic and self.mode != ProcessingMode.QUICK:
             try:
@@ -356,29 +378,37 @@ class EnhancedPipeline:
         book_id: str,
     ) -> Tuple[List[Dict], List[Tuple[int, int, str]]]:
         """
-        Merge chapters that are too small.
-        
+        Merge chapters that are too small, with guards against over-merging.
+
+        Guards:
+        - Won't merge if the combined chapter would exceed TARGET_MAX_WORDS
+        - If merging produces fewer chapters than expected for the total word
+          count, returns the original chapters instead
+
         Returns:
             Tuple of (merged_chapters, merge_records)
         """
         if not chapters:
             return chapters, []
-        
+
+        total_words = sum(c.get('word_count', 0) for c in chapters)
+
         merged = []
         merges = []
         current = None
-        
+
         for i, chapter in enumerate(chapters):
             word_count = chapter.get('word_count', 0)
-            
+
             if current is None:
                 current = chapter.copy()
                 continue
-            
+
             current_words = current.get('word_count', 0)
-            
-            # Merge if current is too small
-            if current_words < self.TARGET_MIN_WORDS:
+            combined_words = current_words + word_count
+
+            # Merge if current is too small AND the result wouldn't be too large
+            if current_words < self.TARGET_MIN_WORDS and combined_words <= self.TARGET_MAX_WORDS:
                 # Merge with next chapter
                 merged_content = current.get('content', '') + '\n\n' + chapter.get('content', '')
                 current = {
@@ -387,23 +417,34 @@ class EnhancedPipeline:
                     'chapter_number': current['chapter_number'],
                     'title': current.get('title', ''),
                     'content': merged_content,
-                    'word_count': current_words + word_count,
+                    'word_count': combined_words,
                     'file_path': '',
                 }
                 merges.append((i, i-1, f"Merged: {current_words} + {word_count} words"))
             else:
                 merged.append(current)
                 current = chapter.copy()
-        
+
         # Don't forget the last chapter
         if current is not None:
             merged.append(current)
-        
+
+        # Guard: if merging produced a degenerate result (too few chapters for
+        # the total word count), return the original chapters unchanged.
+        # Expected minimum: 1 chapter per 15K words (TARGET_MAX_WORDS).
+        min_expected = max(2, total_words // self.TARGET_MAX_WORDS)
+        if len(merged) < min_expected and len(chapters) >= min_expected:
+            logger.warning(
+                f"Merge produced only {len(merged)} chapters for {total_words} words "
+                f"(expected >= {min_expected}). Keeping original {len(chapters)} chapters."
+            )
+            return chapters, []
+
         # Renumber chapters
         for i, chapter in enumerate(merged):
             chapter['chapter_number'] = i + 1
             chapter['id'] = f"{book_id}-ch{i+1}"
-        
+
         return merged, merges
     
     def _compile_recommendations(
