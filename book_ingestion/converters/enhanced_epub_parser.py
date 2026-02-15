@@ -515,12 +515,13 @@ class EnhancedEPUBParser:
                 return None
 
             # Extract fingerprint (first ~100 chars of text from this element)
-            element_text = element.get_text(strip=True)
+            # Must use separator="\n" to match full_text format from _build_spine()
+            element_text = element.get_text(separator="\n", strip=True)
             if not element_text:
                 # Try getting text from parent or next sibling
                 parent = element.parent
                 if parent:
-                    element_text = parent.get_text(strip=True)
+                    element_text = parent.get_text(separator="\n", strip=True)
 
             if not element_text or len(element_text) < 10:
                 return None
