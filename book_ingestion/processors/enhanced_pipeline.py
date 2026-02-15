@@ -114,6 +114,8 @@ class EnhancedPipeline:
     TARGET_MIN_WORDS = 3000
     TARGET_MAX_WORDS = 15000
     IDEAL_CHAPTER_WORDS = 8000
+    # Fixed-size splits are lower confidence than TOC/anchor-based detection
+    FALLBACK_CONFIDENCE = 0.5
     
     def __init__(
         self,
@@ -316,13 +318,11 @@ class EnhancedPipeline:
             from ..utils.config import Config
             config = Config()
             splitter = ChapterSplitter(config)
-            chapters = splitter._fixed_size_split(text, book_id)
-            # Apply quality gate to the fixed-size split
-            chapters = splitter._quality_resplit(chapters, book_id)
+            chapters = splitter.fallback_split(text, book_id)
             return ChapterDetectionResult(
                 chapters=chapters,
                 method="force_fallback",
-                confidence=0.5,
+                confidence=self.FALLBACK_CONFIDENCE,
                 toc_chapters_found=0,
                 semantic_boundaries_found=0,
                 merge_suggestions=[],

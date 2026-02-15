@@ -217,6 +217,8 @@ class BookIngestionApp:
             author: Optional author override
             book_id: Optional book ID (generated if not provided)
             save_to_storage: Whether to save results to database/files
+            force_fallback: Skip anchor/TOC detection and use fixed-size
+                splitting with quality gate (used for pipeline retry)
 
         Returns:
             BookProcessingResult with processing details

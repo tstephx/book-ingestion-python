@@ -344,8 +344,19 @@ class ChapterSplitter:
 
         return valid_chapters
 
+    def fallback_split(self, text: str, book_id: str) -> List[Dict]:
+        """Split text using fixed-size chunks with quality gate.
+
+        Public API for callers that need to bypass anchor/TOC detection
+        (e.g. force_fallback retry path). Produces 2500-word chunks, then
+        runs _quality_resplit() to enforce min chapters, max words, and
+        lopsided ratio thresholds.
+        """
+        chapters = self._fixed_size_split(text, book_id)
+        return self._quality_resplit(chapters, book_id)
+
     def _fixed_size_split(self, text, book_id):
-        """Split into fixed-size chunks when no chapters detected"""
+        """Split into fixed-size chunks when no chapters detected."""
         words = text.split()
         chunk_size = 2500
         chapters = []
