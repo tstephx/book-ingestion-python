@@ -278,8 +278,9 @@ class CandidateExtractor:
                                        hint_offset: int = 0) -> Optional[int]:
         """Find the line index where a fingerprint appears in text.
 
-        Searches for the fingerprint substring, starting near hint_offset
-        for efficiency. Falls back to full-text search if not found nearby.
+        Finds ALL occurrences and returns the one closest to hint_offset.
+        This avoids matching TOC entries instead of actual chapter headings
+        when chapter titles appear multiple times in the text.
 
         Returns line index or None if fingerprint not found.
         """
@@ -289,23 +290,34 @@ class CandidateExtractor:
         # Use first 50 chars for matching (enough to be unique, robust to truncation)
         search_str = fingerprint[:50]
 
-        # Search near the hint first (within ±20% of text length)
-        window = len(text) // 5
-        search_start = max(0, hint_offset - window)
-        pos = text.find(search_str, search_start)
+        # Find all occurrences
+        positions = []
+        start = 0
+        while True:
+            pos = text.find(search_str, start)
+            if pos < 0:
+                break
+            positions.append(pos)
+            start = pos + 1
 
-        # If not found near hint, search from beginning
-        if pos < 0 and search_start > 0:
-            pos = text.find(search_str, 0, search_start)
+        # Try shorter match if no results
+        if not positions and len(fingerprint) > 30:
+            search_str = fingerprint[:30]
+            start = 0
+            while True:
+                pos = text.find(search_str, start)
+                if pos < 0:
+                    break
+                positions.append(pos)
+                start = pos + 1
 
-        # Try shorter match if full match fails
-        if pos < 0 and len(fingerprint) > 30:
-            pos = text.find(fingerprint[:30])
-
-        if pos < 0:
+        if not positions:
             return None
 
-        return text[:pos].count('\n')
+        # Pick the occurrence closest to hint_offset
+        best_pos = min(positions, key=lambda p: abs(p - hint_offset))
+
+        return text[:best_pos].count('\n')
 
     def _extract_from_anchors(self, enhanced_toc, lines: List[str],
                               code_lines: set) -> List[ChapterCandidate]:
