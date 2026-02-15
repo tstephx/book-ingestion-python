@@ -204,17 +204,13 @@ class EnhancedPipeline:
             )
 
             # Step 1b: Clean each chapter's content individually
-            total_original = 0
-            total_cleaned = 0
             for chapter in detection_result.chapters:
                 original_content = chapter.get('content', '')
-                total_original += len(original_content)
                 cleaned_content, _ = self.text_cleaner.clean(
                     original_content, track_stats=True
                 )
                 chapter['content'] = cleaned_content
                 chapter['word_count'] = len(cleaned_content.split())
-                total_cleaned += len(cleaned_content)
 
             # Build cleaned_text from cleaned chapters for downstream validation
             cleaned_text = '\n\n'.join(
