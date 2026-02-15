@@ -206,6 +206,7 @@ class BookIngestionApp:
         author: Optional[str] = None,
         book_id: Optional[str] = None,
         save_to_storage: bool = True,
+        force_fallback: bool = False,
     ) -> BookProcessingResult:
         """
         Process a book file (PDF or EPUB).
@@ -246,6 +247,7 @@ class BookIngestionApp:
                 book_id=book_id,
                 external_toc_titles=metadata.get("toc_titles"),
                 enhanced_toc=metadata.get("enhanced_toc"),
+                force_fallback=force_fallback,
             )
             self._logger.step_completed("pipeline")
 

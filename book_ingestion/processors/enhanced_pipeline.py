@@ -168,6 +168,7 @@ class EnhancedPipeline:
         external_toc_titles: List[str] = None,
         metadata: Dict = None,
         enhanced_toc=None,
+        force_fallback: bool = False,
     ) -> PipelineResult:
         """
         Process a book through the enhanced pipeline.
@@ -201,6 +202,7 @@ class EnhancedPipeline:
                 book_id,
                 external_toc_titles,
                 enhanced_toc=enhanced_toc,
+                force_fallback=force_fallback,
             )
 
             # Step 1b: Clean each chapter's content individually
@@ -235,6 +237,7 @@ class EnhancedPipeline:
                 book_id,
                 external_toc_titles,
                 enhanced_toc=enhanced_toc,
+                force_fallback=force_fallback,
             )
 
         chapters = detection_result.chapters
@@ -291,6 +294,7 @@ class EnhancedPipeline:
         book_id: str,
         external_toc_titles: List[str] = None,
         enhanced_toc=None,
+        force_fallback: bool = False,
     ) -> ChapterDetectionResult:
         """
         Detect chapters using multiple strategies.
@@ -302,7 +306,28 @@ class EnhancedPipeline:
         4. Semantic boundary detection (if enabled)
         5. Recursive splitting with validation
         6. Fixed-size fallback
+
+        If force_fallback is True, skip all detection strategies and use
+        fixed-size splitting with quality gate directly.
         """
+        if force_fallback:
+            logger.info("force_fallback=True: skipping anchor detection, using fixed-size split for %s", book_id)
+            from .chapter_splitter import ChapterSplitter
+            from ..utils.config import Config
+            config = Config()
+            splitter = ChapterSplitter(config)
+            chapters = splitter._fixed_size_split(text, book_id)
+            # Apply quality gate to the fixed-size split
+            chapters = splitter._quality_resplit(chapters, book_id)
+            return ChapterDetectionResult(
+                chapters=chapters,
+                method="force_fallback",
+                confidence=0.5,
+                toc_chapters_found=0,
+                semantic_boundaries_found=0,
+                merge_suggestions=[],
+            )
+
         chapters = []
         method = "unknown"
         confidence = 0.0
