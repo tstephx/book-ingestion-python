@@ -185,18 +185,62 @@ class EnhancedPipeline:
         """
         logger.info(f"Processing book {book_id} with mode={self.mode.value}")
 
-        # Step 1: Clean text
-        cleaned_text, cleaning_stats = self.text_cleaner.clean(text, track_stats=True)
-        logger.info(f"Cleaned text: {cleaning_stats.bytes_saved:,} bytes saved")
-
-        # Step 2: Detect chapters using multiple strategies
-        detection_result = self._detect_chapters(
-            cleaned_text,
-            book_id,
-            external_toc_titles,
-            enhanced_toc=enhanced_toc,
+        # Determine if we have EPUB anchors for precise chapter detection.
+        # When anchors are available, detect chapters on RAW text first
+        # (anchors reference raw text positions), then clean chapter content.
+        has_epub_anchors = (
+            enhanced_toc is not None
+            and hasattr(enhanced_toc, 'anchor_map')
+            and len(enhanced_toc.anchor_map) > 0
         )
-        
+
+        if has_epub_anchors:
+            # Step 1a: Detect chapters on raw text (preserves anchor positions)
+            detection_result = self._detect_chapters(
+                text,
+                book_id,
+                external_toc_titles,
+                enhanced_toc=enhanced_toc,
+            )
+
+            # Step 1b: Clean each chapter's content individually
+            total_original = 0
+            total_cleaned = 0
+            for chapter in detection_result.chapters:
+                original_content = chapter.get('content', '')
+                total_original += len(original_content)
+                cleaned_content, _ = self.text_cleaner.clean(
+                    original_content, track_stats=True
+                )
+                chapter['content'] = cleaned_content
+                chapter['word_count'] = len(cleaned_content.split())
+                total_cleaned += len(cleaned_content)
+
+            # Build cleaned_text from cleaned chapters for downstream validation
+            cleaned_text = '\n\n'.join(
+                ch.get('content', '') for ch in detection_result.chapters
+            )
+            cleaning_stats = CleaningStats(
+                original_length=len(text),
+                cleaned_length=len(cleaned_text),
+            )
+            logger.info(
+                f"EPUB anchor mode: detected {len(detection_result.chapters)} chapters "
+                f"on raw text, cleaned {cleaning_stats.bytes_saved:,} bytes from content"
+            )
+        else:
+            # Step 1: Clean text first (no anchors to preserve)
+            cleaned_text, cleaning_stats = self.text_cleaner.clean(text, track_stats=True)
+            logger.info(f"Cleaned text: {cleaning_stats.bytes_saved:,} bytes saved")
+
+            # Step 2: Detect chapters from cleaned text
+            detection_result = self._detect_chapters(
+                cleaned_text,
+                book_id,
+                external_toc_titles,
+                enhanced_toc=enhanced_toc,
+            )
+
         chapters = detection_result.chapters
         logger.info(f"Detected {len(chapters)} chapters via {detection_result.method}")
         
