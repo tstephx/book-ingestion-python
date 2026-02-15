@@ -1,7 +1,11 @@
 """Chapter splitting logic with improved detection"""
 
+import logging
 import re
+from statistics import median
 from typing import List, Dict
+
+logger = logging.getLogger(__name__)
 
 from .code_block_detector import CodeBlockDetector
 from .chapter_detector import (
@@ -15,6 +19,10 @@ from .chapter_detector import (
 
 
 class ChapterSplitter:
+    _QG_MIN_CHAPTERS = 7
+    _QG_MAX_CHAPTER_WORDS = 20_000
+    _QG_MAX_TO_MEDIAN_RATIO = 4.0
+
     def __init__(self, config):
         self.config = config.chapter_detection
         self.patterns = [re.compile(p, re.IGNORECASE | re.MULTILINE) for p in self.config['patterns']]
@@ -101,6 +109,9 @@ class ChapterSplitter:
             chapters = self._fixed_size_split(text, book_id)
             stats.method = 'fallback'
             stats.confidence = 'low'
+
+        # Post-split quality gate: re-split oversized chapters
+        chapters = self._quality_resplit(chapters, book_id)
 
         return {'chapters': chapters, 'stats': stats}
 
@@ -353,3 +364,176 @@ class ChapterSplitter:
             })
 
         return chapters
+
+    def _quality_resplit(self, chapters: List[Dict], book_id: str) -> List[Dict]:
+        """Check quality thresholds and re-split oversized chapters.
+
+        Runs up to 3 rounds of checks until stable:
+        1. Any chapter > _QG_MAX_CHAPTER_WORDS -> re-split
+        2. Total chapters < _QG_MIN_CHAPTERS -> re-split largest to increase count
+        3. Max/median word ratio > _QG_MAX_TO_MEDIAN_RATIO -> re-split outliers
+        """
+        if not chapters or len(chapters) < 1:
+            return chapters
+
+        for _round in range(3):
+            changed = False
+
+            # Check 1: Absolute cap - any chapter over max words
+            new_chapters = []
+            oversized_count = 0
+            for ch in chapters:
+                if ch['word_count'] > self._QG_MAX_CHAPTER_WORDS:
+                    parts = self._resplit_chapter(ch, book_id, self._QG_MAX_CHAPTER_WORDS)
+                    new_chapters.extend(parts)
+                    changed = True
+                    oversized_count += 1
+                else:
+                    new_chapters.append(ch)
+            if oversized_count:
+                logger.info("Quality gate: re-split %d oversized chapter(s) for book %s", oversized_count, book_id)
+            chapters = new_chapters
+
+            # Check 2: Too few chapters - re-split largest to increase count
+            if len(chapters) < self._QG_MIN_CHAPTERS:
+                target_max = self._QG_MAX_CHAPTER_WORDS // 2
+                # Sort indices by word count descending to split largest first
+                indexed = list(enumerate(chapters))
+                indexed.sort(key=lambda x: x[1]['word_count'], reverse=True)
+                to_split = set()
+                projected_count = len(chapters)
+                for orig_idx, ch in indexed:
+                    if projected_count >= self._QG_MIN_CHAPTERS:
+                        break
+                    if ch['word_count'] > target_max:
+                        to_split.add(orig_idx)
+                        # Estimate how many parts this will produce
+                        est_parts = max(2, ch['word_count'] // target_max)
+                        projected_count += est_parts - 1
+
+                if to_split:
+                    logger.info("Quality gate: too few chapters (%d < %d), re-splitting %d largest for book %s",
+                                len(chapters), self._QG_MIN_CHAPTERS, len(to_split), book_id)
+                    new_chapters = []
+                    for i, ch in enumerate(chapters):
+                        if i in to_split:
+                            parts = self._resplit_chapter(ch, book_id, target_max)
+                            new_chapters.extend(parts)
+                            changed = True
+                        else:
+                            new_chapters.append(ch)
+                    chapters = new_chapters
+
+            # Check 3: Lopsided ratio - max/median too high
+            if len(chapters) >= 2:
+                word_counts = [ch['word_count'] for ch in chapters if ch['word_count'] > 0]
+                if word_counts:
+                    med = median(word_counts)
+                    if med > 0:
+                        threshold = med * self._QG_MAX_TO_MEDIAN_RATIO
+                        lopsided_count = sum(1 for ch in chapters if ch['word_count'] > threshold)
+                        if lopsided_count:
+                            logger.info("Quality gate: lopsided ratio (max/median=%.1fx > %.1fx), re-splitting %d chapter(s) for book %s",
+                                        max(word_counts) / med, self._QG_MAX_TO_MEDIAN_RATIO, lopsided_count, book_id)
+                        new_chapters = []
+                        for ch in chapters:
+                            if ch['word_count'] > threshold:
+                                target = int(med * 2)
+                                if target < 500:
+                                    target = 500
+                                parts = self._resplit_chapter(ch, book_id, target)
+                                new_chapters.extend(parts)
+                                changed = True
+                            else:
+                                new_chapters.append(ch)
+                        chapters = new_chapters
+
+            if not changed:
+                break
+
+        # Renumber all chapters
+        for i, ch in enumerate(chapters):
+            ch['chapter_number'] = i + 1
+            ch['id'] = f"{book_id}-ch{i + 1}"
+
+        return chapters
+
+    def _resplit_chapter(self, chapter: Dict, book_id: str, max_words: int) -> List[Dict]:
+        """Re-split a single oversized chapter at paragraph boundaries.
+
+        Splits at blank lines (\\n\\s*\\n). If no paragraph breaks exist,
+        falls back to word-count chunking.
+        """
+        content = chapter.get('content', '')
+        title = chapter.get('title', 'Section')
+
+        if not content or len(content.split()) <= max_words:
+            return [chapter]
+
+        # Split at paragraph boundaries
+        paragraphs = re.split(r'\n\s*\n', content)
+        paragraphs = [p.strip() for p in paragraphs if p.strip()]
+
+        if len(paragraphs) <= 1:
+            # No paragraph breaks - fall back to word-count chunking
+            words = content.split()
+            parts = []
+            for i in range(0, len(words), max_words):
+                chunk_words = words[i:i + max_words]
+                chunk_content = ' '.join(chunk_words)
+                part_num = len(parts) + 1
+                part_title = title if part_num == 1 else f"{title} (part {part_num})"
+                parts.append({
+                    'id': '',
+                    'book_id': book_id,
+                    'chapter_number': 0,
+                    'title': part_title,
+                    'content': chunk_content,
+                    'word_count': len(chunk_words),
+                    'file_path': ''
+                })
+            return parts
+
+        # Greedily merge paragraphs into sub-chapters up to max_words
+        parts = []
+        current_paragraphs = []
+        current_words = 0
+
+        for para in paragraphs:
+            para_words = len(para.split())
+            if current_words + para_words > max_words and current_paragraphs:
+                # Flush current accumulator
+                part_num = len(parts) + 1
+                part_title = title if part_num == 1 else f"{title} (part {part_num})"
+                part_content = '\n\n'.join(current_paragraphs)
+                parts.append({
+                    'id': '',
+                    'book_id': book_id,
+                    'chapter_number': 0,
+                    'title': part_title,
+                    'content': part_content,
+                    'word_count': len(part_content.split()),
+                    'file_path': ''
+                })
+                current_paragraphs = [para]
+                current_words = para_words
+            else:
+                current_paragraphs.append(para)
+                current_words += para_words
+
+        # Flush remaining
+        if current_paragraphs:
+            part_num = len(parts) + 1
+            part_title = title if part_num == 1 else f"{title} (part {part_num})"
+            part_content = '\n\n'.join(current_paragraphs)
+            parts.append({
+                'id': '',
+                'book_id': book_id,
+                'chapter_number': 0,
+                'title': part_title,
+                'content': part_content,
+                'word_count': len(part_content.split()),
+                'file_path': ''
+            })
+
+        return parts if parts else [chapter]
