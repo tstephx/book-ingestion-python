@@ -257,11 +257,6 @@ class ProcessingPipeline:
         with open(cleaned_path, 'w', encoding='utf-8') as f:
             f.write(cleaned_text)
 
-        # Update metadata with word count
-        if checkpoint.metadata is None:
-            checkpoint.metadata = {}
-        checkpoint.metadata['word_count'] = len(cleaned_text.split())
-
         checkpoint.stage = ProcessingStage.CLEANING
 
         return checkpoint
@@ -306,7 +301,7 @@ class ProcessingPipeline:
 
         # Set word_count from chapter sum (authoritative source)
         checkpoint.metadata['word_count'] = sum(
-            ch.get('word_count', 0) for ch in checkpoint.chapters
+            ch.get('word_count', 0) for ch in (checkpoint.chapters or [])
         )
 
         # Insert book record
