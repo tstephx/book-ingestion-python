@@ -233,6 +233,60 @@ class TestProcessingPipeline:
         assert db.get_checkpoint('hash123') is None
 
 
+class TestSaveStepWordCount:
+    def test_save_sets_word_count_from_chapter_sum(self, tmp_path):
+        """_save must write sum(chapter.word_count) into books.word_count, not raw text length."""
+        import sqlite3
+        from book_ingestion.processors.pipeline import (
+            ProcessingCheckpoint, ProcessingPipeline, ProcessingStage
+        )
+        from book_ingestion.storage.database import BookDatabase
+
+        db_path = tmp_path / "test.db"
+        db = BookDatabase(str(db_path))
+        db.initialize()
+
+        # Write a minimal cleaned text file
+        raw_text_path = tmp_path / "raw.txt"
+        cleaned_path = tmp_path / "original.txt"
+        cleaned_path.write_text("some words here")  # 3 words — must NOT appear in books.word_count
+
+        config = MagicMock()
+        config.output_dir = str(tmp_path)
+        config.database_path = str(db_path)
+
+        pipeline = ProcessingPipeline.__new__(ProcessingPipeline)
+        pipeline.db = db
+        pipeline.config = config
+        pipeline.progress_callback = None
+
+        chapters = [
+            {"id": "c1", "book_id": "b1", "chapter_number": 1, "title": "Ch 1",
+             "file_path": "c1.txt", "word_count": 12000},
+            {"id": "c2", "book_id": "b1", "chapter_number": 2, "title": "Ch 2",
+             "file_path": "c2.txt", "word_count": 8000},
+        ]
+        checkpoint = ProcessingCheckpoint(
+            book_id="b1",
+            stage=ProcessingStage.SPLITTING,
+            source_hash="x",
+            raw_text_path=str(raw_text_path),
+        )
+        checkpoint.metadata = {"id": "b1", "title": "Test Book", "author": "Author"}
+        checkpoint.chapters = chapters
+
+        with patch("book_ingestion.storage.file_writer.FileWriter") as MockWriter:
+            MockWriter.return_value.write_book = MagicMock()
+            pipeline._save(checkpoint)
+
+        conn = sqlite3.connect(str(db_path))
+        row = conn.execute("SELECT word_count FROM books WHERE id = 'b1'").fetchone()
+        conn.close()
+
+        assert row is not None
+        assert row[0] == 20000, f"Expected word_count=20000 (sum of chapters), got {row[0]}"
+
+
 class TestPipelineResult:
     def test_successful_result(self):
         checkpoint = ProcessingCheckpoint(

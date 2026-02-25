@@ -304,6 +304,11 @@ class ProcessingPipeline:
         with open(cleaned_path, 'r', encoding='utf-8') as f:
             cleaned_text = f.read()
 
+        # Set word_count from chapter sum (authoritative source)
+        checkpoint.metadata['word_count'] = sum(
+            ch.get('word_count', 0) for ch in checkpoint.chapters
+        )
+
         # Insert book record
         self.db.insert_book(checkpoint.metadata)
 
