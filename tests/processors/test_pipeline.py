@@ -287,6 +287,52 @@ class TestSaveStepWordCount:
         assert row[0] == 20000, f"Expected word_count=20000 (sum of chapters), got {row[0]}"
 
 
+class TestBootstrapWordCount:
+    def test_save_to_storage_sets_word_count_from_chapter_sum(self, tmp_path):
+        """_save_to_storage must write sum(chapter.word_count) into books.word_count."""
+        import sqlite3
+        from book_ingestion.bootstrap import BookIngestionApp
+        from book_ingestion.processors.pipeline import PipelineResult, ProcessingCheckpoint, ProcessingStage
+        from book_ingestion.storage.database import BookDatabase
+
+        db_path = tmp_path / "test.db"
+        db = BookDatabase(str(db_path))
+        db.initialize()
+
+        config = MagicMock()
+        config.output_dir = str(tmp_path)
+        config.database_path = str(db_path)
+
+        app = BookIngestionApp.__new__(BookIngestionApp)
+        app.config = config
+        app._db = db
+
+        chapters = [
+            {"id": "c1", "book_id": "b2", "chapter_number": 1, "title": "Ch 1",
+             "file_path": "c1.txt", "word_count": 15000},
+            {"id": "c2", "book_id": "b2", "chapter_number": 2, "title": "Ch 2",
+             "file_path": "c2.txt", "word_count": 5000},
+        ]
+        checkpoint = ProcessingCheckpoint(
+            book_id="b2", stage=ProcessingStage.COMPLETED, source_hash="y"
+        )
+        pipeline_result = PipelineResult(
+            success=True, checkpoint=checkpoint, book_id="b2", chapters=chapters
+        )
+        metadata = {"id": "b2", "title": "Bootstrap Book", "author": "Author"}
+
+        mock_writer = MagicMock()
+        app._get_file_writer = lambda: mock_writer
+        app._save_to_storage(metadata, pipeline_result, "cleaned text")
+
+        conn = sqlite3.connect(str(db_path))
+        row = conn.execute("SELECT word_count FROM books WHERE id = 'b2'").fetchone()
+        conn.close()
+
+        assert row is not None
+        assert row[0] == 20000, f"Expected word_count=20000 (sum of chapters), got {row[0]}"
+
+
 class TestPipelineResult:
     def test_successful_result(self):
         checkpoint = ProcessingCheckpoint(
