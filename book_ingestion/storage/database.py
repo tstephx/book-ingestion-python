@@ -57,7 +57,7 @@ class BookDatabase:
         """Insert a book record"""
         cursor = self.conn.cursor()
         cursor.execute("""
-            INSERT INTO books (id, title, author, word_count, source_file, processing_status)
+            INSERT OR REPLACE INTO books (id, title, author, word_count, source_file, processing_status)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (
             book['id'],
@@ -73,7 +73,7 @@ class BookDatabase:
         """Insert a chapter record"""
         cursor = self.conn.cursor()
         cursor.execute("""
-            INSERT INTO chapters (id, book_id, chapter_number, title, file_path, word_count)
+            INSERT OR REPLACE INTO chapters (id, book_id, chapter_number, title, file_path, word_count)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (
             chapter['id'],

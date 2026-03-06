@@ -409,11 +409,6 @@ class BookIngestionApp:
         db = self._get_db()
         writer = self._get_file_writer()
 
-        # Roll up chapter word counts before inserting book record
-        metadata["word_count"] = sum(
-            ch.get("word_count", 0) for ch in pipeline_result.chapters
-        )
-
         # Insert book metadata
         db.insert_book(metadata)
 

@@ -28,3 +28,9 @@ data/*.backup*
 
 # Worktrees
 .worktrees/
+
+# Bug artifacts (None output path)
+None/
+
+# Local MCP config
+.mcp.json
