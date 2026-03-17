@@ -1,3 +1,11 @@
+---
+status: active
+tags: [project/book-ingestion-python, format/plan]
+type: note
+created: '2025-12-22'
+modified: '2025-12-22'
+---
+
 # Improved Chapter Detection Design
 
 ## Problem

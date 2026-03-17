@@ -1,3 +1,11 @@
+---
+status: active
+tags: [project/book-ingestion-python, format/plan]
+type: note
+created: '2025-12-22'
+modified: '2025-12-22'
+---
+
 # Chapter Detection Improvements
 
 This document describes the improvements made to the book-ingestion-python project for better chapter detection and validation, based on LangChain best practices.

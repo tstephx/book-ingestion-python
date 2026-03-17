@@ -1,3 +1,11 @@
+---
+status: active
+tags: [project/book-ingestion-python, format/readme]
+type: note
+created: '2026-02-06'
+modified: '2026-02-06'
+---
+
 # 🐍 Book Ingestion Pipeline - Python Version
 
 A robust Python pipeline for processing educational books (PDF/EPUB) into chapter-segmented markdown files with SQLite storage and semantic search capabilities.

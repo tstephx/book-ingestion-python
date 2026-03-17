@@ -1,3 +1,11 @@
+---
+status: archived
+tags: [project/book-ingestion-python, format/plan]
+type: note
+created: '2026-01-30'
+modified: '2026-01-30'
+---
+
 # Unified Architecture Design: book-ingestion + agentic_pipeline
 
 **Date:** 2025-01-30

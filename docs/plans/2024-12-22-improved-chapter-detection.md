@@ -1,3 +1,11 @@
+---
+status: active
+tags: [project/book-ingestion-python, format/plan]
+type: note
+created: '2025-12-22'
+modified: '2025-12-22'
+---
+
 # Improved Chapter Detection Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

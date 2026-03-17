@@ -1,3 +1,12 @@
+---
+status: active
+tags: [project/book-ingestion-python, format/readme]
+type: note
+created: '2026-02-18'
+modified: '2026-02-18'
+related: ["[[Claude-Config/mcp-servers/agentic-pipeline]]"]
+---
+
 # CLAUDE.md — Book Ingestion Pipeline
 <!-- project-name: book-ingestion-python -->
 
