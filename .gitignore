@@ -34,3 +34,5 @@ None/
 
 # Local MCP config
 .mcp.json
+github-issues/
+.claude/

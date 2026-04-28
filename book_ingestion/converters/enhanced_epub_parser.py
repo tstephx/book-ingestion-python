@@ -61,7 +61,7 @@ class EnhancedEPUBParser:
     SKIP_PATTERNS = re.compile(
         r"^(cover|cover page|title|title page|copyright|contents|toc|"
         r"table of contents|dedication|acknowledgments?|preface|foreword|"
-        r"introduction|about the authors?|about this book|index|glossary|"
+        r"about the authors?|about this book|index|glossary|"
         r"bibliography|appendix|colophon|front matter|back matter|"
         r"half title|full title|also by|praise for|endorsements|notes|"
         r"references|who this book is for|what this book covers|"
@@ -117,9 +117,7 @@ class EnhancedEPUBParser:
             authors = self._get_authors()
 
             # Build flat TOC titles list (for compatibility with existing code)
-            toc_titles = [
-                sp.title for sp in split_points if not self._should_skip(sp.title)
-            ]
+            toc_titles = [sp.title for sp in split_points if not self._should_skip(sp.title)]
 
             return EPUBStructure(
                 title=title,
@@ -276,9 +274,7 @@ class EnhancedEPUBParser:
                 nav_dir = nav_path.rsplit("/", 1)[0] + "/"
 
             # Find the toc nav element
-            toc_nav = soup.find("nav", {"epub:type": "toc"}) or soup.find(
-                "nav", id="toc"
-            )
+            toc_nav = soup.find("nav", {"epub:type": "toc"}) or soup.find("nav", id="toc")
             if not toc_nav:
                 return
 
@@ -358,9 +354,7 @@ class EnhancedEPUBParser:
 
         return spine
 
-    def _combine_text_with_tracking(
-        self, spine: List[SpineItem]
-    ) -> Tuple[str, List[SpineItem]]:
+    def _combine_text_with_tracking(self, spine: List[SpineItem]) -> Tuple[str, List[SpineItem]]:
         """Combine spine text and track line offsets for each file.
 
         Returns:
@@ -423,14 +417,9 @@ class EnhancedEPUBParser:
                 word_count = len(item.text.split()) if item.text else 0
 
                 # Try to extract title from content
-                title = (
-                    self._extract_title_from_content(item.content)
-                    or f"Section {spine_idx + 1}"
-                )
+                title = self._extract_title_from_content(item.content) or f"Section {spine_idx + 1}"
 
-                if (
-                    not self._should_skip(title) and word_count > 100
-                ):  # Skip empty/tiny sections
+                if not self._should_skip(title) and word_count > 100:  # Skip empty/tiny sections
                     split_points.append(
                         SplitPoint(
                             title=title,
@@ -467,9 +456,7 @@ class EnhancedEPUBParser:
 
             if sp.anchor:
                 # Anchor-level: find element in HTML and extract fingerprint
-                location = self._resolve_anchor(
-                    spine_item, sp.anchor, full_text, full_text_lines
-                )
+                location = self._resolve_anchor(spine_item, sp.anchor, full_text, full_text_lines)
                 if location:
                     anchor_map[sp.full_href] = location
             else:
@@ -530,9 +517,7 @@ class EnhancedEPUBParser:
 
             # Find fingerprint in full text
             # Start searching from this spine item's offset for efficiency
-            search_start = self._line_to_char_offset(
-                full_text_lines, spine_item.line_offset
-            )
+            search_start = self._line_to_char_offset(full_text_lines, spine_item.line_offset)
             pos = full_text.find(fingerprint, search_start)
 
             if pos < 0:
