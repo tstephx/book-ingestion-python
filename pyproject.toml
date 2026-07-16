@@ -42,7 +42,7 @@ nlp = [
 ]
 embeddings = [
     "torch>=2.0.0",
-    "sentence-transformers>=2.2.0,<5.3"  # 5.3+ needs torch>=2.5; Intel-mac torch wheels stop at 2.2.2,
+    "sentence-transformers>=2.2.0,<5.3",  # 5.3+ needs torch>=2.5; Intel-mac torch wheels stop at 2.2.2,
     "numpy>=1.24.0",
 ]
 all = [
