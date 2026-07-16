@@ -20,7 +20,7 @@ python3 -m venv venv
 
 # Activate virtual environment
 echo "🔧 Activating virtual environment..."
-source venv/bin/activate
+source .venv/bin/activate
 
 # Install dependencies
 echo "📥 Installing dependencies..."
@@ -30,7 +30,7 @@ echo ""
 echo "✅ Setup complete!"
 echo ""
 echo "📝 Next steps:"
-echo "1. Activate the virtual environment: source venv/bin/activate"
+echo "1. Activate the virtual environment: source .venv/bin/activate"
 echo "2. Initialize the database: python src/cli.py init"
 echo "3. Process a book: python src/cli.py process /path/to/book.pdf"
 echo ""

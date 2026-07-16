@@ -26,7 +26,7 @@ cd /path/to/book-ingestion-python
 python3.12 -m venv venv
 
 # Activate it
-source venv/bin/activate
+source .venv/bin/activate
 ```
 
 ### Step 2: Install Dependencies
@@ -223,7 +223,7 @@ python src/cli.py merge-chapters <book-id>
 
 ```bash
 cd /path/to/book-ingestion-python
-source venv/bin/activate
+source .venv/bin/activate
 
 # Generate embeddings for new chapters only
 python scripts/generate_embeddings.py
@@ -395,7 +395,7 @@ python3 --version
 
 # If you have 3.13, use 3.12 explicitly
 python3.12 -m venv venv
-source venv/bin/activate
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -406,7 +406,7 @@ pip install -r requirements.txt
 cd /path/to/book-ingestion-python
 
 # Try this instead
-. venv/bin/activate
+. .venv/bin/activate
 ```
 
 ### Import errors (ModuleNotFoundError)?
@@ -415,12 +415,12 @@ This often happens when Python version changes after creating the venv.
 
 ```bash
 # Check for version mismatch
-./venv/bin/python --version
+./.venv/bin/python --version
 
 # If mismatched or broken, recreate venv
 rm -rf venv
 python3.12 -m venv venv
-source venv/bin/activate
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
