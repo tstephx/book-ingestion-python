@@ -80,6 +80,8 @@ book_ingestion/
 ## Integration
 After processing + embeddings, restart the MCP host serving book-mcp-server (Claude Desktop, Claude Code, etc.).
 
+`.mcp.json` here also defines an `agentic-pipeline` server that launches out of **book-mcp-server's own venv**, not a local one — deliberate shared-provider pattern (see `book-mcp-server/CLAUDE.md`'s "agentic-pipeline is a shared MCP provider" section), not a stray path to "fix."
+
 ---
 
 *Last updated: 2026-02-18*
