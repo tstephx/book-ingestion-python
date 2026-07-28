@@ -223,6 +223,66 @@ class TestBuildEnhancedTOC:
 class TestIntegrationWithChapterDetector:
     """Tests for integration with chapter detector."""
 
+    def test_reliable_epub_anchors_exclude_heuristic_headings(self):
+        """A complete publisher TOC should not be padded with guessed chapters."""
+        from book_ingestion.processors.chapter_detector import (
+            CandidateExtractor,
+            MatchType,
+        )
+
+        lines = [""] * 60
+        chapter_specs = [
+            (5, "1: Plan Your Visit", "chapter-1.xhtml"),
+            (20, "2: Northern Region", "chapter-2.xhtml"),
+            (35, "3: Southern Region", "chapter-3.xhtml"),
+        ]
+        for line_index, title, _ in chapter_specs:
+            lines[line_index] = title
+            lines[line_index + 1] = (
+                "regional details continue here with complete prose for travelers."
+            )
+
+        lines[50] = "Regional Publishing Notes"
+        lines[51] = "additional publisher information follows in this back matter."
+        text = "\n".join(lines)
+
+        enhanced_toc = EnhancedTOC(
+            split_points=[
+                SplitPoint(
+                    title=title,
+                    href=href,
+                    depth=0,
+                    spine_index=index,
+                )
+                for index, (_, title, href) in enumerate(chapter_specs)
+            ],
+            spine_files=[href for _, _, href in chapter_specs],
+            anchor_map={
+                href: AnchorLocation(
+                    href=href,
+                    line_index=line_index,
+                    char_offset=text.find(title),
+                    fingerprint=title,
+                )
+                for line_index, title, href in chapter_specs
+            },
+        )
+
+        candidates = CandidateExtractor().extract(
+            text,
+            enhanced_toc=enhanced_toc,
+        )
+
+        assert [candidate.title for candidate in candidates] == [
+            "1: Plan Your Visit",
+            "2: Northern Region",
+            "3: Southern Region",
+        ]
+        assert all(
+            candidate.match_type == MatchType.EPUB_ANCHOR
+            for candidate in candidates
+        )
+
     def test_anchor_candidates_have_high_confidence(self):
         """Candidates from anchors should have high confidence scores."""
         from book_ingestion.processors.chapter_detector import (

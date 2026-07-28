@@ -126,6 +126,8 @@ class CandidateExtractor:
     Extracts chapter candidates from text with context for scoring.
     """
 
+    MIN_RELIABLE_EPUB_ANCHORS = 3
+
     def __init__(self):
         self.code_detector = CodeBlockDetector()
 
@@ -261,6 +263,9 @@ class CandidateExtractor:
 
         # If we have anchor candidates, they should be the primary source
         if anchor_candidates:
+            if len(anchor_candidates) >= self.MIN_RELIABLE_EPUB_ANCHORS:
+                return anchor_candidates
+
             # EPUB anchors provide exact line positions for chapters
             # Don't mix with TOC-matched candidates which may point to TOC listing
             # Only include pattern-matched candidates that are:
