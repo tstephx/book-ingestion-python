@@ -127,6 +127,7 @@ class CandidateExtractor:
     """
 
     MIN_RELIABLE_EPUB_ANCHORS = 3
+    MIN_RELIABLE_EPUB_ANCHOR_COVERAGE = 0.8
 
     def __init__(self):
         self.code_detector = CodeBlockDetector()
@@ -263,7 +264,25 @@ class CandidateExtractor:
 
         # If we have anchor candidates, they should be the primary source
         if anchor_candidates:
-            if len(anchor_candidates) >= self.MIN_RELIABLE_EPUB_ANCHORS:
+            top_level_splits = [
+                split
+                for split in enhanced_toc.split_points
+                if split.depth == 0
+            ]
+            intended_splits = top_level_splits or [
+                split
+                for split in enhanced_toc.split_points
+                if split.depth <= 1
+            ]
+            anchor_coverage = (
+                len(anchor_candidates) / len(intended_splits)
+                if intended_splits
+                else 0.0
+            )
+            if (
+                len(anchor_candidates) >= self.MIN_RELIABLE_EPUB_ANCHORS
+                and anchor_coverage >= self.MIN_RELIABLE_EPUB_ANCHOR_COVERAGE
+            ):
                 return anchor_candidates
 
             # EPUB anchors provide exact line positions for chapters

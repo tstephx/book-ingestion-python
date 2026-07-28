@@ -31,9 +31,10 @@ length and typography.
 
 ### 3. Treat a complete resolved EPUB TOC as authoritative
 
-When at least three chapter-level EPUB anchors resolve, return only those
-structural candidates. If fewer than three resolve, retain the existing mixed
-heuristic path so sparse or damaged EPUB metadata can recover.
+When at least three chapter-level EPUB anchors resolve and they cover at least
+80% of the intended chapter-level TOC entries, return only those structural
+candidates. Otherwise retain the existing mixed heuristic path so sparse,
+partial, or damaged EPUB metadata can recover.
 
 This is the selected approach. It is format-driven rather than title- or
 book-type-specific, preserves the existing fallback for weak metadata, and
@@ -44,7 +45,8 @@ is otherwise diluted.
 
 1. The enhanced EPUB parser builds split points and resolves chapter anchors.
 2. `CandidateExtractor` creates `EPUB_ANCHOR` candidates.
-3. If three or more resolve, they become the full candidate set.
+3. If three or more resolve with at least 80% chapter-TOC coverage, they become
+   the full candidate set.
 4. Otherwise, the extractor continues combining resolved anchors with
    non-overlapping heuristics.
 5. After anchor-positioned content is cleaned, chapter size limits are applied
@@ -58,9 +60,9 @@ is otherwise diluted.
 
 ## Error Handling and Safety
 
-The reliability threshold prevents one or two accidentally resolved anchors
-from suppressing recovery heuristics. No source-specific strings, file names,
-or classifier types are introduced. Forced fallback behavior remains unchanged.
+The count and coverage thresholds prevent a small or partial set of resolved
+anchors from suppressing recovery heuristics. No source-specific strings, file
+names, or classifier types are introduced. Forced fallback behavior remains unchanged.
 The live book will be reingested without `force_fallback`, left pending under
 supervised autonomy, and audited before any approval.
 
@@ -71,6 +73,7 @@ supervised autonomy, and audited before any approval.
   heading leaks into the candidate set, then pass with only EPUB anchors.
 - Keep the existing one-anchor fingerprint tests to cover the sparse-anchor
   fallback path.
+- Verify a 75%-resolved chapter TOC retains heuristic recovery candidates.
 - Verify post-clean EPUB chapters remain within the hard size limit.
 - Verify oversized paragraphs produce bounded, balanced, uniquely titled
   chapter parts.

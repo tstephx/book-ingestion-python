@@ -283,6 +283,59 @@ class TestIntegrationWithChapterDetector:
             for candidate in candidates
         )
 
+    def test_partial_epub_anchor_resolution_keeps_heuristic_recovery(self):
+        """A partly resolved publisher TOC must not suppress recovery candidates."""
+        from book_ingestion.processors.chapter_detector import (
+            CandidateExtractor,
+            MatchType,
+        )
+
+        lines = [""] * 60
+        chapter_specs = [
+            (5, "1: Plan Your Visit", "chapter-1.xhtml"),
+            (20, "2: Northern Region", "chapter-2.xhtml"),
+            (35, "3: Southern Region", "chapter-3.xhtml"),
+            (45, "4: Island Region", "chapter-4.xhtml"),
+        ]
+        for line_index, title, _ in chapter_specs:
+            lines[line_index] = title
+            lines[line_index + 1] = "regional details continue in complete prose."
+        lines[55] = "Recovery Heading"
+        lines[56] = "additional prose follows this recoverable heading."
+        text = "\n".join(lines)
+
+        enhanced_toc = EnhancedTOC(
+            split_points=[
+                SplitPoint(
+                    title=title,
+                    href=href,
+                    depth=0,
+                    spine_index=index,
+                )
+                for index, (_, title, href) in enumerate(chapter_specs)
+            ],
+            spine_files=[href for _, _, href in chapter_specs],
+            anchor_map={
+                href: AnchorLocation(
+                    href=href,
+                    line_index=line_index,
+                    char_offset=text.find(title),
+                    fingerprint=title,
+                )
+                for line_index, title, href in chapter_specs[:3]
+            },
+        )
+
+        candidates = CandidateExtractor().extract(
+            text,
+            enhanced_toc=enhanced_toc,
+        )
+
+        assert any(
+            candidate.match_type != MatchType.EPUB_ANCHOR
+            for candidate in candidates
+        )
+
     def test_anchor_candidates_have_high_confidence(self):
         """Candidates from anchors should have high confidence scores."""
         from book_ingestion.processors.chapter_detector import (

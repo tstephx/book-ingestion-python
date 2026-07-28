@@ -4,7 +4,7 @@
 
 **Goal:** Prevent reliable publisher TOCs from being diluted by heuristic chapter candidates and restore accurate book-level word counts.
 
-**Architecture:** Make `CandidateExtractor` treat three or more resolved chapter-level EPUB anchors as authoritative, while preserving the existing mixed fallback for sparse anchor maps. Restore the chapter-sum rollup at the application storage boundary.
+**Architecture:** Make `CandidateExtractor` treat three or more resolved chapter-level EPUB anchors with at least 80% TOC coverage as authoritative, while preserving the existing mixed fallback for sparse or partial anchor maps. Restore the chapter-sum rollup at the application storage boundary.
 
 **Tech Stack:** Python 3.12, pytest, EbookLib data types, SQLite storage.
 
@@ -87,11 +87,13 @@ Add a named reliability threshold to `CandidateExtractor`:
 
 ```python
 MIN_RELIABLE_EPUB_ANCHORS = 3
+MIN_RELIABLE_EPUB_ANCHOR_COVERAGE = 0.8
 ```
 
 In the existing `if anchor_candidates:` branch, return `anchor_candidates`
-immediately when their count meets the threshold. Leave the current
-non-overlapping heuristic merge unchanged below it for sparse anchor maps.
+immediately when their count and intended-split coverage meet the thresholds.
+Leave the current non-overlapping heuristic merge unchanged below them for
+sparse or partial anchor maps.
 
 **Step 2: Verify the focused regression passes**
 
