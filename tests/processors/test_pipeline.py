@@ -1,8 +1,10 @@
 """Tests for processing pipeline with checkpoints"""
 
+import hashlib
 import pytest
 import tempfile
 import os
+import sqlite3
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -331,6 +333,125 @@ class TestBootstrapWordCount:
 
         assert row is not None
         assert row[0] == 20000, f"Expected word_count=20000 (sum of chapters), got {row[0]}"
+
+
+class TestChapterContentHashPersistence:
+    def test_write_book_hashes_exact_rendered_markdown(self, tmp_path):
+        from book_ingestion.storage.file_writer import FileWriter
+
+        chapters = [
+            {
+                "id": "c1",
+                "book_id": "b1",
+                "chapter_number": 1,
+                "title": "Introduction",
+                "word_count": 3,
+                "content": "Alpha beta gamma",
+            }
+        ]
+
+        FileWriter(tmp_path).write_book(
+            {"id": "b1", "title": "Hash Test"},
+            chapters,
+            "Alpha beta gamma",
+        )
+
+        rendered = Path(chapters[0]["file_path"]).read_text(encoding="utf-8")
+        assert chapters[0]["content_hash"] == hashlib.sha256(rendered.encode()).hexdigest()
+
+    def test_write_book_with_sections_hashes_reader_compatible_content(self, tmp_path):
+        from book_ingestion.storage.file_writer import FileWriter
+
+        chapters = [
+            {
+                "id": "c1",
+                "book_id": "b1",
+                "chapter_number": 1,
+                "title": "Large Chapter",
+                "word_count": 6,
+                "content": "Alpha beta gamma delta epsilon zeta",
+            }
+        ]
+        sections = [
+            {
+                "title": "Part One",
+                "parent_chapter_number": 1,
+                "parent_chapter_title": "Large Chapter",
+                "word_count": 3,
+                "token_count": 4,
+                "content": "Alpha beta gamma",
+            },
+            {
+                "title": "Part Two",
+                "parent_chapter_number": 1,
+                "parent_chapter_title": "Large Chapter",
+                "word_count": 3,
+                "token_count": 4,
+                "content": "Delta epsilon zeta",
+            },
+        ]
+
+        FileWriter(tmp_path).write_book_with_sections(
+            {"id": "b1", "title": "Split Hash Test"},
+            chapters,
+            sections,
+            "Alpha beta gamma delta epsilon zeta",
+        )
+
+        chapter_dir = Path(chapters[0]["file_path"])
+        rendered_parts = [
+            path.read_text(encoding="utf-8")
+            for path in sorted(chapter_dir.glob("[0-9]*.md"))
+            if not path.name.startswith("_")
+        ]
+        reader_content = "\n\n".join(rendered_parts)
+        assert chapters[0]["content_hash"] == hashlib.sha256(reader_content.encode()).hexdigest()
+
+    def test_initialize_adds_content_hash_to_legacy_chapters_table(self, tmp_path):
+        db_path = tmp_path / "legacy.db"
+        conn = sqlite3.connect(db_path)
+        conn.execute(
+            """CREATE TABLE chapters (
+                id TEXT PRIMARY KEY,
+                book_id TEXT NOT NULL,
+                chapter_number INTEGER NOT NULL,
+                title TEXT,
+                file_path TEXT NOT NULL,
+                word_count INTEGER
+            )"""
+        )
+        conn.commit()
+        conn.close()
+
+        db = BookDatabase(str(db_path))
+        db.initialize()
+        columns = {row["name"] for row in db.conn.execute("PRAGMA table_info(chapters)")}
+        db.close()
+
+        assert "content_hash" in columns
+
+    def test_insert_chapter_persists_content_hash(self, tmp_path):
+        db = BookDatabase(str(tmp_path / "test.db"))
+        db.initialize()
+        db.insert_book({"id": "b1", "title": "Hash Test"})
+        db.insert_chapter(
+            {
+                "id": "c1",
+                "book_id": "b1",
+                "chapter_number": 1,
+                "title": "Introduction",
+                "file_path": "/tmp/c1.md",
+                "word_count": 3,
+                "content_hash": "abc123",
+            }
+        )
+
+        row = db.conn.execute(
+            "SELECT content_hash FROM chapters WHERE id = 'c1'"
+        ).fetchone()
+        db.close()
+
+        assert row["content_hash"] == "abc123"
 
 
 class TestPipelineResult:

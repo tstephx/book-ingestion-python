@@ -34,9 +34,15 @@ class BookDatabase:
                 title TEXT,
                 file_path TEXT NOT NULL,
                 word_count INTEGER,
+                content_hash TEXT,
                 FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
             )
         """)
+
+        cursor.execute("PRAGMA table_info(chapters)")
+        chapter_columns = {row["name"] for row in cursor.fetchall()}
+        if "content_hash" not in chapter_columns:
+            cursor.execute("ALTER TABLE chapters ADD COLUMN content_hash TEXT")
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS processing_checkpoints (
@@ -73,15 +79,17 @@ class BookDatabase:
         """Insert a chapter record"""
         cursor = self.conn.cursor()
         cursor.execute("""
-            INSERT OR REPLACE INTO chapters (id, book_id, chapter_number, title, file_path, word_count)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO chapters
+                (id, book_id, chapter_number, title, file_path, word_count, content_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             chapter['id'],
             chapter['book_id'],
             chapter['chapter_number'],
             chapter['title'],
             chapter.get('file_path', ''),
-            chapter['word_count']
+            chapter['word_count'],
+            chapter.get('content_hash'),
         ))
         self.conn.commit()
     

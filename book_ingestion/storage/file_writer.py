@@ -1,5 +1,6 @@
 """File writing utilities"""
 
+import hashlib
 from pathlib import Path
 import json
 import re
@@ -43,15 +44,18 @@ class FileWriter:
             )
             chapter_path = book_dir / 'chapters' / filename
 
-            with open(chapter_path, 'w', encoding='utf-8') as f:
-                f.write(f"# {chapter['title']}\n\n")
-                f.write(f"**Chapter {chapter['chapter_number']}**\n")
-                f.write(f"*Word Count: {chapter['word_count']}*\n\n")
-                f.write("---\n\n")
-                f.write(chapter.get('content', ''))
+            rendered_content = (
+                f"# {chapter['title']}\n\n"
+                f"**Chapter {chapter['chapter_number']}**\n"
+                f"*Word Count: {chapter['word_count']}*\n\n"
+                "---\n\n"
+                f"{chapter.get('content', '')}"
+            )
+            chapter_path.write_text(rendered_content, encoding='utf-8')
 
-            # Update chapter with file path
+            # Track the exact persisted representation used by downstream readers.
             chapter['file_path'] = str(chapter_path)
+            chapter['content_hash'] = hashlib.sha256(rendered_content.encode()).hexdigest()
 
     def write_book_with_sections(
         self,
@@ -110,8 +114,10 @@ class FileWriter:
 
         # Write chapters/sections
         file_paths = []
+        rendered_by_chapter = {}
 
         for ch_num, ch_sections in sorted(chapter_sections.items()):
+            rendered_by_chapter[ch_num] = []
             chapter = next(
                 (c for c in chapters if c.get('chapter_number') == ch_num),
                 ch_sections[0].get('original_chapter', {})
@@ -136,6 +142,7 @@ class FileWriter:
                 with open(chapter_path, 'w', encoding='utf-8') as f:
                     f.write(content)
 
+                rendered_by_chapter[ch_num].append(content)
                 file_paths.append(str(chapter_path))
             else:
                 # Multiple sections - create folder
@@ -172,6 +179,7 @@ class FileWriter:
                     with open(section_path, 'w', encoding='utf-8') as f:
                         f.write(content)
 
+                    rendered_by_chapter[ch_num].append(content)
                     file_paths.append(str(section_path))
 
         # Update chapters with file paths for database
@@ -187,6 +195,11 @@ class FileWriter:
                 chapter_title = chapter.get('title', f'Chapter {ch_num}')
                 folder_name = self._sanitize_filename(f"{ch_num:02d}-{chapter_title}")
                 chapter['file_path'] = str(book_dir / 'chapters' / folder_name)
+
+            rendered_parts = rendered_by_chapter.get(ch_num, [])
+            if rendered_parts:
+                reader_content = '\n\n'.join(rendered_parts)
+                chapter['content_hash'] = hashlib.sha256(reader_content.encode()).hexdigest()
 
         return file_paths
 
