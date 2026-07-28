@@ -355,6 +355,14 @@ class ChapterSplitter:
         chapters = self._fixed_size_split(text, book_id)
         return self._quality_resplit(chapters, book_id)
 
+    def enforce_quality_limits(
+        self,
+        chapters: List[Dict],
+        book_id: str,
+    ) -> List[Dict]:
+        """Reapply chapter size limits after content transformations."""
+        return self._quality_resplit(chapters, book_id)
+
     def _fixed_size_split(self, text, book_id):
         """Split into fixed-size chunks when no chapters detected."""
         words = text.split()
@@ -463,7 +471,22 @@ class ChapterSplitter:
                 break
 
         # Renumber all chapters
+        part_roots = {
+            re.sub(r'(?: \(part \d+\))+$', '', ch['title'])
+            for ch in chapters
+            if re.search(r' \(part \d+\)$', ch['title'])
+        }
+        part_counts = {}
         for i, ch in enumerate(chapters):
+            root_title = re.sub(r'(?: \(part \d+\))+$', '', ch['title'])
+            if root_title in part_roots:
+                part_counts[root_title] = part_counts.get(root_title, 0) + 1
+                part_number = part_counts[root_title]
+                ch['title'] = (
+                    root_title
+                    if part_number == 1
+                    else f"{root_title} (part {part_number})"
+                )
             ch['chapter_number'] = i + 1
             ch['id'] = f"{book_id}-ch{i + 1}"
 
@@ -486,11 +509,12 @@ class ChapterSplitter:
         paragraphs = [p.strip() for p in paragraphs if p.strip()]
 
         if len(paragraphs) <= 1:
-            # No paragraph breaks - fall back to word-count chunking
             words = content.split()
+            part_count = (len(words) + max_words - 1) // max_words
+            chunk_size = (len(words) + part_count - 1) // part_count
             parts = []
-            for i in range(0, len(words), max_words):
-                chunk_words = words[i:i + max_words]
+            for i in range(0, len(words), chunk_size):
+                chunk_words = words[i:i + chunk_size]
                 chunk_content = ' '.join(chunk_words)
                 part_num = len(parts) + 1
                 part_title = title if part_num == 1 else f"{title} (part {part_num})"
@@ -504,6 +528,20 @@ class ChapterSplitter:
                     'file_path': ''
                 })
             return parts
+
+        bounded_paragraphs = []
+        for paragraph in paragraphs:
+            words = paragraph.split()
+            if len(words) <= max_words:
+                bounded_paragraphs.append(paragraph)
+                continue
+            part_count = (len(words) + max_words - 1) // max_words
+            chunk_size = (len(words) + part_count - 1) // part_count
+            for start in range(0, len(words), chunk_size):
+                bounded_paragraphs.append(
+                    ' '.join(words[start:start + chunk_size])
+                )
+        paragraphs = bounded_paragraphs
 
         # Greedily merge paragraphs into sub-chapters up to max_words
         parts = []

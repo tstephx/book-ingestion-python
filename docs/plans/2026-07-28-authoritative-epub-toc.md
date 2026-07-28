@@ -117,24 +117,41 @@ git commit -m "fix: trust reliable EPUB chapter anchors"
 ### Task 4: Verify and integrate
 
 **Files:**
-- No additional production files.
+- Modify: `book_ingestion/processors/chapter_splitter.py`
+- Modify: `book_ingestion/processors/enhanced_pipeline.py`
+- Test: `tests/processors/test_quality_resplit.py`
+- Test: `tests/processors/test_enhanced_pipeline.py`
 
-**Step 1: Run the full suite**
+**Step 1: Preserve the post-clean size invariant**
+
+Add failing regressions showing that:
+
+- punctuation normalization cannot leave an anchor-derived chapter over the
+  quality cap;
+- a single oversized paragraph is split below the cap without duplicate part
+  titles; and
+- dense content is balanced instead of producing a tiny final remainder.
+
+Expose the existing quality-limit pass through a public method and apply it
+after cleaning anchor-derived chapters. Balance dense word chunks and normalize
+repeated part suffixes.
+
+**Step 2: Run the full suite**
 
 Run all tests with the project environment. Record any baseline-only
 semantic-model failure separately; no other failure is acceptable.
 
-**Step 2: Dry-run the audited EPUB**
+**Step 3: Dry-run the audited EPUB**
 
 Process the source with `save_to_storage=False` and no forced fallback.
 Expected: `epub_anchor`, high confidence, no heuristic regional-imprint title.
 
-**Step 3: Review the diff**
+**Step 4: Review the diff**
 
 Check `git diff --check`, inspect the branch diff, and verify no
 source-specific text entered production code.
 
-**Step 4: Merge locally**
+**Step 5: Merge locally**
 
 Merge the branch into local `main` after verification.
 

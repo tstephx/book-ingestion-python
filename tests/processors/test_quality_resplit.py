@@ -202,6 +202,31 @@ class TestPreservesGoodChapters:
 class TestSplitsAtBlankLines:
     """Resplit should split at paragraph boundaries."""
 
+    def test_oversized_paragraph_is_split_without_duplicate_part_titles(self, splitter):
+        """A paragraph over the limit must be chunked before paragraph packing."""
+        oversized = " ".join(f"large{i}" for i in range(25))
+        trailing = " ".join(f"tail{i}" for i in range(5))
+        chapter = {
+            "id": "book1-ch1",
+            "book_id": "book1",
+            "chapter_number": 1,
+            "title": "Regional Guide",
+            "content": f"{oversized}\n\n{trailing}",
+            "word_count": 30,
+            "file_path": "",
+        }
+
+        parts = splitter._resplit_chapter(chapter, "book1", 10)
+
+        assert all(part["word_count"] <= 10 for part in parts)
+        assert [part["title"] for part in parts] == [
+            "Regional Guide",
+            *[
+                f"Regional Guide (part {part_number})"
+                for part_number in range(2, len(parts) + 1)
+            ],
+        ]
+
     def test_splits_at_paragraph_boundaries(self, splitter):
         """Content with paragraph breaks should split at those breaks."""
         # Create a chapter with 3 large paragraphs
@@ -229,6 +254,20 @@ class TestSplitsAtBlankLines:
 
 class TestFallbackNoBreaks:
     """When no paragraph breaks, falls back to word-count chunking."""
+
+    def test_no_breaks_balances_a_tiny_final_remainder(self, splitter):
+        """Dense content should not create a nearly empty final part."""
+        chapter = _make_chapter(
+            "book1",
+            1,
+            "Dense Chapter",
+            21,
+            use_paragraphs=False,
+        )
+
+        parts = splitter._resplit_chapter(chapter, "book1", 10)
+
+        assert [part["word_count"] for part in parts] == [7, 7, 7]
 
     def test_no_paragraph_breaks_fallback(self, splitter):
         """Single block of text with no blank lines uses word chunking."""

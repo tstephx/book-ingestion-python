@@ -47,9 +47,13 @@ is otherwise diluted.
 3. If three or more resolve, they become the full candidate set.
 4. Otherwise, the extractor continues combining resolved anchors with
    non-overlapping heuristics.
-5. Existing scoring, chapter construction, size validation, and oversized
-   chapter splitting continue unchanged.
-6. Before storage, `BookIngestionApp` rolls up chapter word counts into book
+5. After anchor-positioned content is cleaned, chapter size limits are applied
+   again because punctuation normalization can increase the whitespace word
+   count.
+6. Oversized dense paragraphs are divided into balanced parts so a small
+   remainder does not become a nearly empty chapter; repeated part titles are
+   normalized to one sequential series.
+7. Before storage, `BookIngestionApp` rolls up chapter word counts into book
    metadata, which becomes the authoritative book-level count.
 
 ## Error Handling and Safety
@@ -67,6 +71,9 @@ supervised autonomy, and audited before any approval.
   heading leaks into the candidate set, then pass with only EPUB anchors.
 - Keep the existing one-anchor fingerprint tests to cover the sparse-anchor
   fallback path.
+- Verify post-clean EPUB chapters remain within the hard size limit.
+- Verify oversized paragraphs produce bounded, balanced, uniquely titled
+  chapter parts.
 - Re-run the existing word-count regression before and after restoring the
   rollup.
 - Run the focused chapter/EPUB/storage suites and the full suite, explicitly

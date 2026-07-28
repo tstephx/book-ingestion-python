@@ -216,6 +216,15 @@ class EnhancedPipeline:
                 chapter['content'] = cleaned_content
                 chapter['word_count'] = len(cleaned_content.split())
 
+            from .chapter_splitter import ChapterSplitter
+            from ..utils.config import Config
+
+            cleaned_splitter = ChapterSplitter(Config())
+            detection_result.chapters = cleaned_splitter.enforce_quality_limits(
+                detection_result.chapters,
+                book_id,
+            )
+
             # Build cleaned_text from cleaned chapters for downstream validation
             cleaned_text = '\n\n'.join(
                 ch.get('content', '') for ch in detection_result.chapters

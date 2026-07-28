@@ -72,6 +72,62 @@ class TestEnhancedPipeline:
         pipeline = EnhancedPipeline()
         assert pipeline.target_chapter_words == pipeline.IDEAL_CHAPTER_WORDS
 
+    def test_anchor_chapters_reapply_size_limit_after_cleaning(self, monkeypatch):
+        """Cleaning must not leave stored EPUB chapters over the quality cap."""
+        from book_ingestion.converters.epub_types import (
+            AnchorLocation,
+            EnhancedTOC,
+            SplitPoint,
+        )
+        from book_ingestion.processors.chapter_splitter import ChapterSplitter
+
+        monkeypatch.setattr(ChapterSplitter, "_QG_MAX_CHAPTER_WORDS", 10)
+        monkeypatch.setattr(ChapterSplitter, "_QG_MIN_CHAPTERS", 3)
+
+        lines = []
+        specs = []
+        for index, title in enumerate(
+            ["1: First Region", "2: Second Region", "3: Third Region"]
+        ):
+            line_index = len(lines)
+            lines.append(title)
+            lines.append("one—two " * 8)
+            specs.append((line_index, title, f"chapter-{index + 1}.xhtml"))
+        text = "\n".join(lines)
+
+        enhanced_toc = EnhancedTOC(
+            split_points=[
+                SplitPoint(
+                    title=title,
+                    href=href,
+                    depth=0,
+                    spine_index=index,
+                )
+                for index, (_, title, href) in enumerate(specs)
+            ],
+            spine_files=[href for _, _, href in specs],
+            anchor_map={
+                href: AnchorLocation(
+                    href=href,
+                    line_index=line_index,
+                    char_offset=text.find(title),
+                    fingerprint=title,
+                )
+                for line_index, title, href in specs
+            },
+        )
+
+        result = self.pipeline.process_book(
+            text,
+            "cleaned-anchor-book",
+            enhanced_toc=enhanced_toc,
+        )
+
+        assert all(chapter["word_count"] <= 10 for chapter in result.chapters)
+        assert len({chapter["title"] for chapter in result.chapters}) == len(
+            result.chapters
+        )
+
 
 class TestPipelineResult:
     """Tests for PipelineResult dataclass"""
