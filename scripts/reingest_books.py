@@ -35,10 +35,12 @@ from book_ingestion.converters.epub_converter import EPUBConverter
 from book_ingestion.processors.enhanced_pipeline import EnhancedPipeline, ProcessingMode
 from book_ingestion.utils.config import Config
 
-# Library DB path (shared with book-mcp-server)
+# Canonical library DB (shared with book-mcp-server). Several repos have a file
+# named library.db; only this one is the book library — resolve by full
+# canonical path or env override, never a relative or guessed-home path.
 DB_PATH = os.environ.get(
     "AGENTIC_PIPELINE_DB",
-    os.path.expanduser("~/_Projects/book-ingestion-python/data/library.db"),
+    os.path.expanduser("~/Library/Application Support/book-library/library.db"),
 )
 
 # Tier 1: Critically broken (empty or near-empty content)

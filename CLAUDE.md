@@ -13,7 +13,7 @@ related: ["[[Claude-Config/mcp-servers/agentic-pipeline]]"]
 **DO NOT scan directories on startup.** Do not paste large verbatim book text into chat; summarize and reference output file paths.
 
 ## Purpose
-Converts PDF/EPUB into chapter-segmented markdown + SQLite + embeddings. Powers book-mcp-server search. DB is shared (`data/library.db`).
+Converts PDF/EPUB into chapter-segmented markdown + SQLite + embeddings. Powers book-mcp-server search. The shared/canonical DB is `~/Library/Application Support/book-library/library.db` (env `AGENTIC_PIPELINE_DB`); the local `data/library.db` is a small dev copy only.
 
 ## Bootstrap
 ```bash
@@ -47,7 +47,7 @@ python -m pytest tests/ -v
 
 ## Config
 Defaults in `config/config.json` (auto-generated if missing):
-- DB: `data/library.db` (shared with book-mcp-server)
+- DB: `data/library.db` (LOCAL dev copy — the shared canonical DB lives at `~/Library/Application Support/book-library/library.db`, env `AGENTIC_PIPELINE_DB`)
 - Output: `data/books/{book-id}/` (metadata.json, chapters/*.md)
 - Embedding model: all-MiniLM-L6-v2
 
@@ -75,7 +75,7 @@ book_ingestion/
 | Long chapters (>15K tokens) | Confirm section_splitter behavior; check if semantic boundaries exist |
 | Embeddings fail | Verify Python 3.12 (not 3.13), torch installed, rerun `generate_embeddings.py` |
 | MCP server doesn't see new books | Confirm embeddings generated, then restart/reload MCP host |
-| DB mismatch | Both repos must point to same `data/library.db` |
+| DB mismatch | Both repos must point at the canonical DB: `~/Library/Application Support/book-library/library.db` (env `AGENTIC_PIPELINE_DB`) — never a repo-local `data/library.db` |
 
 ## Integration
 After processing + embeddings, restart the MCP host serving book-mcp-server (Claude Desktop, Claude Code, etc.).
