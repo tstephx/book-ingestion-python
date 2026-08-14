@@ -1,23 +1,25 @@
 """Configuration manager"""
 
-from pathlib import Path
 import json
+import os
+from pathlib import Path
+
 
 class Config:
     def __init__(self, config_path=None):
         if config_path is None:
             # Default to config/config.json relative to project root
-            self.config_path = Path(__file__).parent.parent.parent / 'config' / 'config.json'
+            self.config_path = Path(__file__).parent.parent.parent / "config" / "config.json"
         else:
             self.config_path = Path(config_path)
-        
+
         # Load config if exists, otherwise use defaults
         if self.config_path.exists():
             with open(self.config_path) as f:
                 self.config = json.load(f)
         else:
             self.config = self._get_defaults()
-    
+
     def _get_defaults(self):
         """Default configuration"""
         project_root = Path(__file__).parent.parent.parent
@@ -34,57 +36,62 @@ class Config:
                     r"^CHAPTER\s+(\d+)",
                     r"^(\d+)\.\s+",
                     r"^Lesson\s+(\d+)",
-                    r"^Module\s+(\d+)"
-                ]
+                    r"^Module\s+(\d+)",
+                ],
             },
             "section_splitting": {
                 "enabled": True,
                 "max_tokens_per_section": 15000,
                 "min_tokens_per_section": 500,
-                "section_patterns": [
-                    r"^#{2,4}\s+.+$",
-                    r"^\d+\.\d+(?:\.\d+)?\s+[A-Z].+$"
-                ]
+                "section_patterns": [r"^#{2,4}\s+.+$", r"^\d+\.\d+(?:\.\d+)?\s+[A-Z].+$"],
             },
             "text_cleaning": {
                 "remove_headers": True,
                 "remove_footers": True,
                 "remove_page_numbers": True,
-                "normalize_whitespace": True
-            }
+                "normalize_whitespace": True,
+            },
         }
-    
+
     @property
     def output_dir(self):
-        path = Path(self.config['output_dir'])
+        path = Path(self.config["output_dir"])
         path.mkdir(parents=True, exist_ok=True)
         return path
-    
+
     @property
     def database_path(self):
-        path = Path(self.config['database_path'])
+        # AGENTIC_PIPELINE_DB overrides config.json / defaults — matches the
+        # canonical-DB convention scripts/reingest_books.py already follows.
+        # Without this, every CLI entry point silently writes to the local
+        # dev-copy path instead of the shared canonical DB (#2).
+        env_path = os.environ.get("AGENTIC_PIPELINE_DB")
+        path = Path(env_path) if env_path else Path(self.config["database_path"])
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
-    
+
     @property
     def temp_dir(self):
-        path = Path(self.config['temp_dir'])
+        path = Path(self.config["temp_dir"])
         path.mkdir(parents=True, exist_ok=True)
         return path
-    
+
     @property
     def chapter_detection(self):
-        return self.config['chapter_detection']
-    
+        return self.config["chapter_detection"]
+
     @property
     def text_cleaning(self):
-        return self.config['text_cleaning']
+        return self.config["text_cleaning"]
 
     @property
     def section_splitting(self):
-        return self.config.get('section_splitting', {
-            'enabled': True,
-            'max_tokens_per_section': 15000,
-            'min_tokens_per_section': 500,
-            'section_patterns': []
-        })
+        return self.config.get(
+            "section_splitting",
+            {
+                "enabled": True,
+                "max_tokens_per_section": 15000,
+                "min_tokens_per_section": 500,
+                "section_patterns": [],
+            },
+        )
