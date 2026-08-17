@@ -8,8 +8,12 @@
 # later ones hit uv's cache.
 # Interpreter pinned to this repo's measured baseline — never ambient python3,
 # which drifts with every brew upgrade. uv fails loudly if 3.12 is missing.
+# `uv sync --locked` installs exactly what uv.lock pins, so every worktree gets
+# bit-identical dependencies instead of a fresh latest-compatible resolve, and
+# --locked additionally asserts the lock is still consistent with pyproject —
+# failing loudly if it drifted (tstephx/dotfiles#78).
 [[pre-start]]
-deps = "uv venv --python 3.12 .venv && uv pip install -p .venv -qe '.[all,dev]'"
+deps = "uv sync --locked --python 3.12 --extra all --extra dev"
 
 [pre-merge]
 test = ".venv/bin/python -m pytest -q"
