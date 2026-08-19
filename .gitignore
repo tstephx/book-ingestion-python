@@ -35,7 +35,7 @@ None/
 # Local MCP config
 .mcp.json
 github-issues/
-.claude/
+.claude/settings.local.json
 
 # MemPalace per-project files (issue #185)
 mempalace.yaml
