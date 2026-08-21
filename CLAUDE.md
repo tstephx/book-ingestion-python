@@ -25,6 +25,8 @@ python -m book_ingestion.cli list   # smoke test
 ```
 Python 3.12 required (3.13 not supported — PyTorch).
 
+Copy `.mcp.json.example` to `.mcp.json` and set `BOOK_LIBRARY_DB`/`BOOK_MCP_SERVER_HOME` to enable the `sqlite`/`agentic-pipeline` MCP servers (see Integration below).
+
 ## Common Commands
 ```bash
 source .venv/bin/activate
@@ -47,7 +49,7 @@ python -m pytest tests/ -v
 
 ## Config
 Defaults in `config/config.json` (auto-generated if missing):
-- DB: `data/library.db` (LOCAL dev copy — the shared canonical DB lives at `~/Library/Application Support/book-library/library.db`, env `AGENTIC_PIPELINE_DB`)
+- DB path resolution: see `.claude/skills/db-schema/SKILL.md` (canonical vs. dev-copy paths, and current known gaps)
 - Output: `data/books/{book-id}/` (metadata.json, chapters/*.md)
 - Embedding model: all-MiniLM-L6-v2
 
@@ -68,14 +70,7 @@ book_ingestion/
 ```
 
 ## Triage
-
-| Symptom | Check |
-|---------|-------|
-| Chapter boundaries wrong | `python -m book_ingestion.cli analyze <book-id>` — inspect detected TOC/anchors |
-| Long chapters (>15K tokens) | Confirm section_splitter behavior; check if semantic boundaries exist |
-| Embeddings fail | Verify Python 3.12 (not 3.13), torch installed, rerun `generate_embeddings.py` |
-| MCP server doesn't see new books | Confirm embeddings generated, then restart/reload MCP host |
-| DB mismatch | Both repos must point at the canonical DB: `~/Library/Application Support/book-library/library.db` (env `AGENTIC_PIPELINE_DB`) — never a repo-local `data/library.db` |
+Read `docs/triage.md` when a processing/embeddings/detection run fails or behaves unexpectedly.
 
 ## Integration
 After processing + embeddings, restart the MCP host serving book-mcp-server (Claude Desktop, Claude Code, etc.).

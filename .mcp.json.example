@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "sqlite": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-server-sqlite",
+        "--db-path",
+        "${BOOK_LIBRARY_DB:-$HOME/Library/Application Support/book-library/library.db}"
+      ]
+    },
+    "agentic-pipeline": {
+      "command": "${BOOK_MCP_SERVER_HOME:?set to your book-mcp-server checkout}/.venv/bin/python",
+      "args": [
+        "${BOOK_MCP_SERVER_HOME:?set to your book-mcp-server checkout}/agentic_mcp_server.py"
+      ],
+      "env": {
+        "AGENTIC_PIPELINE_DB": "${BOOK_LIBRARY_DB:-$HOME/Library/Application Support/book-library/library.db}",
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+      }
+    }
+  }
+}
