@@ -79,4 +79,4 @@ After processing + embeddings, restart the MCP host serving book-mcp-server (Cla
 
 ---
 
-*Last updated: 2026-02-18*
+*Last updated: 2026-08-21*
