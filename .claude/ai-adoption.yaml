@@ -1,0 +1,4 @@
+profile: data-pipeline
+commands:
+  verify: scripts/verify.sh
+  audit: null

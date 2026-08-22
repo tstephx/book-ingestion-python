@@ -40,3 +40,4 @@ github-issues/
 # MemPalace per-project files (issue #185)
 mempalace.yaml
 entities.json
+.claude-handoff.local.md
