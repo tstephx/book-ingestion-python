@@ -17,13 +17,21 @@ Converts PDF/EPUB into chapter-segmented markdown + SQLite + embeddings. Powers 
 
 ## Bootstrap
 ```bash
-python3.12 -m venv .venv
+uv sync --locked --python 3.12 --extra all --extra dev
 source .venv/bin/activate
-python -m pip install -U pip
-python -m pip install -e .
 python -m book_ingestion.cli list   # smoke test
 ```
-Python 3.12 required (3.13 not supported — PyTorch).
+Python 3.12 required (3.13 not supported — PyTorch). Use `uv sync
+--locked`, not a plain `pip install -e .` — a plain install never upgrades
+an already-satisfying direct dependency (e.g. `torch`) while unpinned
+transitive deps keep resolving to latest, so the two drift apart from
+each other over time and can land on a broken combination (confirmed
+2026-08-22, `#6`: a stale `pip install -e .` venv pulled in a `transformers`
+requiring `torch>=2.4` alongside a frozen `torch==2.2.2`, breaking the
+`sentence_transformers` import chain). `uv.lock` already pins a known-
+working set together; `.config/wt.toml`'s worktree bootstrap uses this
+same command for that reason — keep the main checkout's venv built the
+same way instead of drifting from it.
 
 Copy `.mcp.json.example` to `.mcp.json` and set `BOOK_LIBRARY_DB`/`BOOK_MCP_SERVER_HOME` to enable the `sqlite`/`agentic-pipeline` MCP servers (see Integration below).
 
