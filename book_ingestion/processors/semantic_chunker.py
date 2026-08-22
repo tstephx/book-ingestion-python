@@ -248,10 +248,13 @@ class SemanticChunker:
         # Determine threshold
         if self.use_percentile and similarities:
             sim_values = [s['similarity'] for s in similarities]
-            sorted_sims = sorted(sim_values)
-            # Low similarity = topic change, so use lower percentile
-            threshold_idx = int(len(sorted_sims) * (1 - self.percentile_threshold))
-            threshold = sorted_sims[max(0, threshold_idx)]
+            # Low similarity = topic change, so use the low-tail percentile.
+            # A linear-interpolated percentile (rather than a truncated list
+            # index) avoids collapsing to the bare minimum -- which nothing
+            # can ever be "below" -- whenever there are few similarity values
+            # (fewer than 10, given the default percentile_threshold=0.9).
+            import numpy as np
+            threshold = np.percentile(sim_values, (1 - self.percentile_threshold) * 100)
         else:
             threshold = self.breakpoint_threshold
         
