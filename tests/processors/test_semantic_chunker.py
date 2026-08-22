@@ -222,9 +222,13 @@ class TestSemanticChunker:
     def test_detect_boundaries_basic(self, check_semantic_available):
         """Should detect semantic boundaries"""
         from book_ingestion.processors.semantic_chunker import SemanticChunker
-        
-        chunker = SemanticChunker()
-        
+
+        # buffer_size default (200 words) is tuned for chapter-scale input; this
+        # sample is ~70 words total, which the merge step collapses into a single
+        # chunk at the default, leaving nothing to compare. Use a small buffer_size
+        # so each topic paragraph becomes its own comparable chunk.
+        chunker = SemanticChunker(buffer_size=15)
+
         # Create text with clear topic shifts
         text = """
         Machine learning is a subset of artificial intelligence.
