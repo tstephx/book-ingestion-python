@@ -8,11 +8,19 @@
 # Add an allowlist entry below ONLY for a path a fleet portability audit
 # explicitly classified as an intentional remote-host or historical-example
 # reference (retained on purpose, not a defect). Format: "file:substring".
-# None currently apply to this repo.
+#
+# .claude/settings.json's extraKnownMarketplaces.taylor-dev.source.path is
+# written by taylor-dev-core's promote-harness-release.rb (_Workspace) and is
+# inherently machine-local: a `directory`-source marketplace entry has no
+# portable form (tracked at taylor-dev-core#84 -- a _Workspace-side fix,
+# out of scope here; same disposition as rss-news-server#13 and briefcase's
+# 787835c). Accepted tradeoff: a fresh clone must re-run
+# enable-taylor-dev-core.rb/promote-harness-release.rb for that machine
+# rather than relying on the committed path.
 set -euo pipefail
 
 ALLOWLIST=(
-  # "path/to/file:substring-of-the-allowed-line"
+  ".claude/settings.json:.harness-releases/taylor-dev-core/"
 )
 
 cd "$(git rev-parse --show-toplevel)"
