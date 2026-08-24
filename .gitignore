@@ -41,3 +41,4 @@ github-issues/
 mempalace.yaml
 entities.json
 .claude-handoff.local.md
+.claude/.session-receipt.local.json
