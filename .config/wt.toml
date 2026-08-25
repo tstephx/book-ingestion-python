@@ -15,5 +15,10 @@
 [[pre-start]]
 deps = "uv sync --locked --python 3.12 --extra all --extra dev"
 
+# Wires the gitleaks secret-scanning pre-commit gate in every fresh worktree
+# (core.hooksPath is a per-checkout git config, not something git clone/worktree copies).
+[[pre-start]]
+hooks = "git config core.hooksPath .githooks"
+
 [pre-merge]
 test = ".venv/bin/python -m pytest -q"
