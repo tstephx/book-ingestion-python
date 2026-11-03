@@ -199,7 +199,7 @@ requires-dist = [
     { name = "beautifulsoup4", marker = "extra == 'converters'", specifier = ">=4.12.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
     { name = "book-ingestion", extras = ["converters", "nlp", "embeddings"], marker = "extra == 'all'" },
-    { name = "click", specifier = ">=8.1.0" },
+    { name = "click", specifier = ">=8.2.0" },
     { name = "ebooklib", marker = "extra == 'converters'", specifier = ">=0.18" },
     { name = "lxml", marker = "extra == 'converters'", specifier = ">=4.9.0" },
     { name = "nltk", marker = "extra == 'nlp'", specifier = ">=3.8.0" },

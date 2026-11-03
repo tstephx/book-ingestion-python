@@ -4,6 +4,8 @@ Enhanced CLI commands for book validation and analysis.
 Add to existing CLI by importing these commands.
 """
 
+import copy
+
 import click
 from rich.console import Console
 from rich.table import Table
@@ -307,15 +309,17 @@ def register_enhanced_commands(cli):
         console.print(f"   [yellow]Fair (50-74):[/yellow] {fair}")
         console.print(f"   [red]Poor (<50):[/red] {poor}")
     
-    @cli.command()
+    @cli.command('analyze-merges')
     @click.argument('book_id')
-    @click.option('--dry-run', is_flag=True, help='Show what would be merged without making changes')
+    @click.option('--dry-run', is_flag=True, hidden=True,
+                  help='Ignored; this command never modifies anything.')
     @click.option('--min-words', type=int, default=3000, help='Minimum words per chapter')
-    def merge_chapters(book_id, dry_run, min_words):
-        """Merge small chapters that appear to be over-fragmented.
-        
-        Identifies chapters below the minimum word threshold and suggests
-        or performs merges with adjacent chapters.
+    def analyze_merges(book_id, dry_run, min_words):
+        """Analyze over-fragmented chapters and show a suggested merge plan.
+
+        Identifies chapters below the minimum word threshold and prints which
+        adjacent chapters could be combined. Analysis only: this command never
+        modifies the database or chapter files.
         """
         from book_ingestion.utils.config import Config
         from book_ingestion.storage.database import BookDatabase
@@ -407,14 +411,14 @@ def register_enhanced_commands(cli):
         
         console.print(table)
         
-        if dry_run:
-            console.print(f"\n[dim]Dry run - no changes made. Remove --dry-run to apply merges.[/dim]")
-            return
-        
-        # TODO: Implement actual merge logic
-        console.print(f"\n[yellow]Merge execution not yet implemented.[/yellow]")
-        console.print("[dim]Use this analysis to manually adjust chapter boundaries.[/dim]")
-    
+        console.print("\n[dim]Analysis only - no changes made. Use this plan to adjust chapter boundaries manually.[/dim]")
+
+    # Deprecated alias: the old name implied it performed merges.
+    _legacy = copy.copy(analyze_merges)
+    _legacy.hidden = True
+    _legacy.deprecated = "use 'analyze-merges' (this command only analyzes; it never merged)"
+    cli.add_command(_legacy, 'merge-chapters')
+
     @cli.command()
     @click.argument('file_path', type=click.Path(exists=True))
     @click.option('--mode', '-m', type=click.Choice(['quick', 'standard', 'thorough']), 

@@ -204,7 +204,7 @@ def generate_report(analyses: List[Dict]) -> str:
         ])
         for analysis in analyses:
             if analysis['should_merge']:
-                lines.append(f"python -m src.cli merge-chapters {analysis['book']['id'][:8]}...")
+                lines.append(f"python -m src.cli analyze-merges {analysis['book']['id'][:8]}...")
         lines.extend([
             "```",
             "",
