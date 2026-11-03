@@ -124,16 +124,14 @@ python -m src.cli quality-report --issues-only
 python -m src.cli quality-report --min-score 75
 ```
 
-#### `merge-chapters` - Fix over-fragmentation
+#### `analyze-merges` - Analyze over-fragmentation
+Read-only: prints a suggested merge plan; never modifies the database or chapter files.
+(Formerly `merge-chapters`, kept as a hidden deprecated alias.)
 ```bash
-# Preview merges (dry run)
-python -m src.cli merge-chapters BOOK_ID --dry-run
-
-# Execute merges
-python -m src.cli merge-chapters BOOK_ID
+python -m src.cli analyze-merges BOOK_ID
 
 # Custom threshold
-python -m src.cli merge-chapters BOOK_ID --min-words 2500
+python -m src.cli analyze-merges BOOK_ID --min-words 2500
 ```
 
 #### `preview` - Test detection without saving
@@ -305,7 +303,7 @@ The enhanced components integrate seamlessly:
 
 ### Immediate
 1. Run quality report on full library
-2. Process over-fragmented books with merge-chapters
+2. Review over-fragmented books with analyze-merges
 3. Consider section splitting for oversized chapters
 
 ### Future Enhancements
@@ -325,9 +323,8 @@ python -m src.cli analyze BOOK_ID --mode thorough
 # Check library quality
 python -m src.cli quality-report --issues-only
 
-# Fix over-fragmentation
-python -m src.cli merge-chapters BOOK_ID --dry-run
-python -m src.cli merge-chapters BOOK_ID
+# Analyze over-fragmentation (read-only)
+python -m src.cli analyze-merges BOOK_ID
 
 # Preview new book
 python -m src.cli preview /path/to/book.pdf --mode standard

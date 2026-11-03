@@ -211,8 +211,8 @@ python src/cli.py quality-report
 # Resplit large chapters
 python src/cli.py resplit <book-id>
 
-# Merge over-fragmented chapters
-python src/cli.py merge-chapters <book-id>
+# Analyze over-fragmented chapters (suggests merges; read-only)
+python src/cli.py analyze-merges <book-id>
 ```
 
 ---
@@ -448,9 +448,9 @@ Use the audit command to identify issues:
 python src/cli.py audit
 ```
 
-Then merge fragmented chapters:
+Then review fragmented chapters (analysis only, suggests merges):
 ```bash
-python src/cli.py merge-chapters <book-id>
+python src/cli.py analyze-merges <book-id>
 ```
 
 ---
@@ -523,7 +523,7 @@ cat data/logs/batch_YYYYMMDD_HHMMSS.log
 | Issue | Solution |
 |-------|----------|
 | No chapters detected | Use `--debug` flag or `diagnose` command |
-| Too many chapters | Run `merge-chapters <book-id>` |
+| Too many chapters | Run `analyze-merges <book-id>` for a suggested merge plan |
 | Embeddings missing | Run `scripts/generate_embeddings.py` |
 | Import errors | Recreate venv with Python 3.12 |
 | Python 3.13 errors | PyTorch requires Python 3.12 |
