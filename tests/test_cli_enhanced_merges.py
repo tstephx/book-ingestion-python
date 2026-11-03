@@ -29,7 +29,43 @@ def test_help_does_not_promise_a_merge():
     assert "--dry-run" not in result.output  # hidden no-op
 
 
-def test_unknown_book_exits_cleanly(monkeypatch, tmp_path):
-    monkeypatch.setenv("AGENTIC_PIPELINE_DB", str(tmp_path / "x.db"))
+def test_legacy_alias_still_invokes():
+    result = CliRunner().invoke(_cli(), ["merge-chapters", "--help"])
+    assert result.exit_code == 0
+    assert "never modifies" in result.output
+
+
+def _db(monkeypatch, tmp_path):
+    from book_ingestion.storage.database import BookDatabase
+
+    path = tmp_path / "x.db"
+    monkeypatch.setenv("AGENTIC_PIPELINE_DB", str(path))
+    db = BookDatabase(path)
+    db.initialize()
+    return db
+
+
+def test_unknown_book_reports_not_found(monkeypatch, tmp_path):
+    _db(monkeypatch, tmp_path)
     result = CliRunner().invoke(_cli(), ["analyze-merges", "nope"])
+    assert result.exit_code == 0
+    assert "Book not found: nope" in result.output
     assert "not implemented" not in result.output
+
+
+def test_prints_plan_and_leaves_chapters_untouched(monkeypatch, tmp_path):
+    db = _db(monkeypatch, tmp_path)
+    db.insert_book({"id": "b1", "title": "Frag Book"})
+    for n, words in enumerate([5000, 400, 6000], start=1):
+        db.insert_chapter(
+            {"id": f"c{n}", "book_id": "b1", "chapter_number": n,
+             "title": f"Ch {n}", "word_count": words}
+        )
+    before = db.get_chapters_by_book("b1")
+
+    result = CliRunner().invoke(_cli(), ["analyze-merges", "b1"])
+
+    assert result.exit_code == 0, result.output
+    assert "Merge" in result.output
+    assert "Analysis only" in result.output
+    assert db.get_chapters_by_book("b1") == before

@@ -23,7 +23,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "click>=8.1.0",
+    "click>=8.2.0",
     "rich>=13.7.0",
     "tqdm>=4.66.0",
 ]
